@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<title>Concrete Dispatch</title>
+<!-- PWA Meta -->
+<meta name="theme-color" content="#007AFF"/>
+<meta name="description" content="Concrete Dispatching, Receiving & Delivery Ticket Control"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --blue:#007AFF;--blue15:rgba(0,122,255,.12);--blue-bg:#EBF5FF;
+  --green:#34C759;--green15:rgba(52,199,89,.12);--green-bg:#E8FAF0;
+  --orange:#FF9500;--orange15:rgba(255,149,0,.12);--orange-bg:#FFF4E5;
+  --red:#FF3B30;--red15:rgba(255,59,48,.12);--red-bg:#FFECEB;
+  --purple:#5856D6;--purple15:rgba(88,86,214,.12);--purple-bg:#F0EFFF;
+  --teal:#32ADE6;--teal15:rgba(50,173,230,.12);
+  --cyan:#00C7BE;
+  --label:#000;--label2:#3C3C43;--label3:rgba(60,60,67,.6);--label4:rgba(60,60,67,.3);
+  --bg:#F2F2F7;--card:#FFF;--sep:rgba(60,60,67,.1);--fill:rgba(120,120,128,.08);
+  --font:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;
+  --r:14px;--r-sm:10px;--r-lg:20px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font);background:var(--bg);color:var(--label);font-size:17px;-webkit-font-smoothing:antialiased}
+
+/* ── Shell ─────────────────────────────────────────────── */
+#app{max-width:430px;margin:0 auto;height:100%;display:flex;flex-direction:column;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 80px rgba(0,0,0,.08)}
+.page{display:none;height:100%;flex-direction:column}.page.active{display:flex}
+
+/* ── Icons (SVG inline helper) ─────────────────────────── */
+.icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.icon svg{width:100%;height:100%}
+
+/* ── Header ────────────────────────────────────────────── */
+.hdr{padding:8px 20px 6px;flex-shrink:0;background:var(--bg)}
+.hdr-lg{font-size:34px;font-weight:800;letter-spacing:-.5px;padding-bottom:4px}
+.hdr-title{font-size:17px;font-weight:600;text-align:center;padding:14px 0 6px}
+.hdr-back{display:inline-flex;align-items:center;gap:2px;color:var(--blue);font-size:17px;font-weight:500;background:none;border:none;font-family:var(--font);cursor:pointer;padding:4px 0}
+.hdr-back svg{width:20px;height:20px}
+
+/* ── Content scroll ────────────────────────────────────── */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:110px}
+.px{padding-left:20px;padding-right:20px}
+
+/* ── Tab bar ───────────────────────────────────────────── */
+.tabs{position:absolute;bottom:0;left:0;right:0;display:flex;background:rgba(249,249,249,.94);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-top:.33px solid var(--sep);padding:6px 0 max(22px,env(safe-area-inset-bottom));z-index:100}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;font-family:var(--font);font-size:10px;font-weight:500;color:var(--label3);cursor:pointer;padding:4px 0;transition:color .15s}
+.tab.on{color:var(--blue)}
+.tab svg{width:24px;height:24px;stroke-width:1.8}
+
+/* ── Grouped section ───────────────────────────────────── */
+.sec{margin-bottom:28px}
+.sec-t{font-size:13px;font-weight:500;color:var(--label3);text-transform:uppercase;letter-spacing:.6px;padding:0 20px 7px}
+.sec-f{font-size:13px;color:var(--label3);padding:7px 20px 0;line-height:1.35}
+.card{background:var(--card);border-radius:var(--r);margin:0 20px;overflow:hidden;box-shadow:0 .5px 0 var(--sep)}
+
+/* ── Row ───────────────────────────────────────────────── */
+.row{display:flex;align-items:center;padding:13px 16px;min-height:46px;cursor:pointer;transition:background .08s}
+.row:active{background:var(--fill)}
+.row+.row{border-top:.33px solid var(--sep)}
+.row-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-right:14px;flex-shrink:0}
+.row-ico svg{width:18px;height:18px}
+.row-body{flex:1;min-width:0}
+.row-lbl{font-size:17px;font-weight:400}
+.row-sub{font-size:13px;color:var(--label3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-val{font-size:17px;color:var(--label3);margin-right:4px;flex-shrink:0}
+.row-arr{flex-shrink:0;color:var(--label4);margin-left:2px}
+.row-arr svg{width:14px;height:14px}
+.badge{background:var(--red);color:#fff;font-size:11px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 6px;margin-right:8px}
+
+/* ── Pills ─────────────────────────────────────────────── */
+.pill{display:inline-flex;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;flex-shrink:0;letter-spacing:.1px}
+.p-draft{background:var(--fill);color:var(--label3)}
+.p-sub{background:var(--blue15);color:var(--blue)}
+.p-app{background:var(--green15);color:var(--green)}
+.p-rej{background:var(--red15);color:var(--red)}
+.p-del{background:var(--orange15);color:var(--orange)}
+.p-comp{background:var(--green15);color:#248A3D}
+.p-lock{background:var(--green15);color:#248A3D}
+.p-pend{background:var(--orange15);color:var(--orange)}
+.p-post{background:#E8F5E9;color:#2E7D32}
+.p-fail{background:var(--red15);color:var(--red)}
+
+/* ── KPI ───────────────────────────────────────────────── */
+.kpi-r{display:flex;gap:10px;padding:0 20px;margin-bottom:10px}
+.kpi{flex:1;background:var(--card);border-radius:16px;padding:16px 8px 14px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.04),0 0 0 .33px var(--sep)}
+.kpi-i{width:40px;height:40px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:6px}
+.kpi-i svg{width:20px;height:20px}
+.kpi-v{font-size:26px;font-weight:800;line-height:1}
+.kpi-l{font-size:11px;font-weight:500;color:var(--label3);margin-top:3px;letter-spacing:.2px}
+
+/* ── Request card ──────────────────────────────────────── */
+.rcard{background:var(--card);border-radius:16px;padding:16px 18px;margin:0 20px 10px;cursor:pointer;transition:transform .1s;box-shadow:0 1px 3px rgba(0,0,0,.03),0 0 0 .33px var(--sep)}
+.rcard:active{transform:scale(.98)}
+.rc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.rc-id{font-size:16px;font-weight:700;letter-spacing:-.2px}
+.rc-info{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--label3);margin-bottom:3px}
+.rc-info svg{width:14px;height:14px;flex-shrink:0;opacity:.6}
+.rc-foot{display:flex;align-items:center;border-top:.33px solid var(--sep);padding-top:12px;margin-top:12px}
+.rc-qb{flex:1}
+.rc-ql{font-size:10px;font-weight:600;color:var(--label4);text-transform:uppercase;letter-spacing:.8px}
+.rc-qv{font-size:17px;font-weight:700;margin-top:1px}
+
+/* ── Buttons ───────────────────────────────────────────── */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:14px;border:none;font-family:var(--font);font-size:17px;font-weight:600;cursor:pointer;width:100%;transition:opacity .15s,transform .1s;letter-spacing:-.1px}
+.btn:active{opacity:.75;transform:scale(.98)}
+.btn-b{background:var(--blue);color:#fff}
+.btn-g{background:var(--green);color:#fff}
+.btn-r{background:var(--red);color:#fff}
+.btn-o{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
+.btn svg{width:20px;height:20px}
+.btn+.btn{margin-top:10px}
+.btn-sm{height:38px;font-size:14px;border-radius:10px;padding:0 16px;width:auto;font-weight:600}
+
+/* ── Fields ────────────────────────────────────────────── */
+.fld{margin-bottom:16px}
+.fld-l{font-size:13px;font-weight:600;color:var(--label3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fld-i,.fld-s{width:100%;padding:14px;border-radius:var(--r-sm);border:.5px solid var(--sep);background:var(--card);font-family:var(--font);font-size:17px;color:var(--label);-webkit-appearance:none;appearance:none;transition:border-color .15s}
+.fld-i:focus,.fld-s:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue15)}
+.fld-s{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238E8E93' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.fld-i::placeholder{color:var(--label4)}
+
+/* ── Info grid ─────────────────────────────────────────── */
+.ig{display:grid;grid-template-columns:1fr 1fr}
+.ig-c{padding:12px 16px;border-bottom:.33px solid var(--sep)}
+.ig-c:nth-child(odd){border-right:.33px solid var(--sep)}
+.ig-cl{font-size:10px;font-weight:600;color:var(--label4);text-transform:uppercase;letter-spacing:.8px}
+.ig-cv{font-size:16px;font-weight:600;margin-top:2px}
+
+/* ── Qty grid ──────────────────────────────────────────── */
+.qg{display:flex;text-align:center;padding:14px 8px}
+.qb{flex:1;padding:6px 0}
+.qb-v{font-size:24px;font-weight:800}
+.qb-l{font-size:10px;font-weight:600;color:var(--label4);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+
+/* ── Progress bar ──────────────────────────────────────── */
+.prog{height:6px;background:var(--sep);border-radius:3px;overflow:hidden;margin-top:8px}
+.prog-f{height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:3px;transition:width .4s ease}
+
+/* ── Filter chips ──────────────────────────────────────── */
+.chips{display:flex;gap:8px;padding:8px 20px;overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:8px 16px;border-radius:20px;background:var(--card);border:.5px solid var(--sep);font-family:var(--font);font-size:13px;font-weight:600;color:var(--label2);white-space:nowrap;cursor:pointer;transition:all .15s}
+.chip.on{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* ── Summary chips ─────────────────────────────────────── */
+.sum-r{display:flex;gap:8px;padding:8px 20px}
+.sum-c{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:12px;font-size:14px;font-weight:700}
+
+/* ── Greeting ──────────────────────────────────────────── */
+.greet{display:flex;justify-content:space-between;align-items:center;padding:8px 20px 18px}
+.greet-s{font-size:15px;color:var(--label3);font-weight:500}
+.greet-n{font-size:26px;font-weight:800;letter-spacing:-.5px}
+.role-c{padding:6px 14px;border-radius:10px;font-size:13px;font-weight:700}
+
+/* ── Sign button ───────────────────────────────────────── */
+.sign{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--green);color:#fff;height:44px;border-radius:12px;border:none;font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-top:12px}
+.sign:active{opacity:.75}
+.sign svg{width:18px;height:18px}
+
+/* ── FAB ───────────────────────────────────────────────── */
+.fab{position:absolute;bottom:110px;right:24px;width:58px;height:58px;border-radius:17px;background:linear-gradient(135deg,#007AFF,#5856D6);color:#fff;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;box-shadow:0 6px 20px rgba(0,122,255,.35);transition:transform .15s;z-index:50}
+.fab:active{transform:scale(.9)}
+.fab svg{width:28px;height:28px}
+
+/* ── Role select ───────────────────────────────────────── */
+.role-scr{display:flex;flex-direction:column;align-items:center;padding:60px 24px 20px;height:100%;overflow-y:auto}
+.role-logo{width:80px;height:80px;border-radius:22px;background:linear-gradient(135deg,#007AFF,#5856D6);display:flex;align-items:center;justify-content:center;margin-bottom:20px;box-shadow:0 8px 30px rgba(0,122,255,.25)}
+.role-logo svg{width:42px;height:42px}
+.role-h{font-size:32px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.role-sh{font-size:16px;color:var(--label3);font-weight:500;margin-bottom:36px}
+.rl{width:100%;display:flex;flex-direction:column;gap:10px}
+.rc2{background:var(--card);border-radius:16px;padding:18px 16px;display:flex;align-items:center;cursor:pointer;transition:transform .1s,box-shadow .15s;box-shadow:0 1px 4px rgba(0,0,0,.04),0 0 0 .33px var(--sep)}
+.rc2:active{transform:scale(.97);box-shadow:0 1px 8px rgba(0,0,0,.08)}
+.rc2-i{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-right:14px;flex-shrink:0}
+.rc2-i svg{width:26px;height:26px}
+.rc2-t{flex:1}.rc2-n{font-size:17px;font-weight:700}.rc2-d{font-size:13px;color:var(--label3);margin-top:2px}
+.rc2-a{color:var(--label4)}
+.rc2-a svg{width:18px;height:18px}
+.ver{font-size:11px;color:var(--label4);text-align:center;margin-top:auto;padding:20px 0}
+
+/* ── Empty state ───────────────────────────────────────── */
+.empty{text-align:center;padding:60px 32px;color:var(--label3)}
+.empty svg{width:56px;height:56px;opacity:.35;margin-bottom:14px}
+.empty-t{font-size:18px;font-weight:700;color:var(--label2)}
+.empty-m{font-size:15px;margin-top:6px}
+
+/* ── DT TICKET PRINTOUT ───────────────────────────────── */
+.dt-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.dt-sheet{background:#fff;border-radius:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.dt-head{background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;padding:24px 20px 20px;border-radius:20px 20px 0 0;position:relative}
+.dt-head-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.dt-head-logo svg{width:28px;height:28px;opacity:.9}
+.dt-head-co{font-size:14px;font-weight:600;opacity:.7;letter-spacing:.5px;text-transform:uppercase}
+.dt-head-title{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+.dt-head-sub{font-size:14px;opacity:.6}
+.dt-head-num{position:absolute;top:24px;right:20px;text-align:right}
+.dt-head-num-l{font-size:10px;opacity:.5;text-transform:uppercase;letter-spacing:1px}
+.dt-head-num-v{font-size:18px;font-weight:800;margin-top:2px}
+.dt-body{padding:20px}
+.dt-sec{margin-bottom:20px}
+.dt-sec-t{font-size:11px;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1.5px solid var(--bg)}
+.dt-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
+.dt-row-l{color:var(--label3);font-weight:500}
+.dt-row-v{font-weight:600;text-align:right}
+.dt-tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+.dt-tbl th{background:var(--bg);padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--label3)}
+.dt-tbl td{padding:8px 10px;border-bottom:.5px solid var(--sep)}
+.dt-tbl tr:last-child td{border-bottom:none}
+.dt-tbl .tot td{font-weight:700;background:var(--bg);border-bottom:none}
+.dt-barcode{text-align:center;padding:20px;border-top:1.5px dashed var(--sep);margin-top:8px}
+.dt-barcode-bars{display:flex;justify-content:center;gap:1px;margin-bottom:8px;height:50px}
+.dt-barcode-bar{background:#000;width:2px}
+.dt-barcode-bar.w{width:3px}
+.dt-barcode-bar.s{background:transparent;width:2px}
+.dt-barcode-val{font-size:14px;font-weight:700;font-family:'Courier New',monospace;letter-spacing:3px;color:var(--label2)}
+.dt-qr{margin-top:12px}
+.dt-foot{text-align:center;padding:16px 20px 24px;font-size:11px;color:var(--label4);border-top:.5px solid var(--sep)}
+.dt-close{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.dt-stamp{display:inline-flex;align-items:center;gap:4px;background:var(--green15);color:var(--green);padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;margin-top:8px}
+.dt-stamp svg{width:14px;height:14px}
+
+/* ── Face Recognition Screen ──────────────────────────── */
+.face-scr{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;background:linear-gradient(180deg,#000 0%,#0a0a1a 100%);padding:40px 24px;overflow:hidden;position:relative}
+.face-title{color:#fff;font-size:26px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;text-align:center;z-index:2}
+.face-sub{color:rgba(255,255,255,.55);font-size:15px;font-weight:500;text-align:center;z-index:2;margin-bottom:32px}
+.face-cam-wrap{width:220px;height:220px;border-radius:50%;position:relative;z-index:2;margin-bottom:32px;overflow:hidden;box-shadow:0 0 60px rgba(0,122,255,.2)}
+.face-cam-wrap video{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.face-cam-placeholder{width:100%;height:100%;background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;border-radius:50%}
+.face-cam-placeholder svg{width:64px;height:64px;color:rgba(255,255,255,.2)}
+.face-ring{position:absolute;inset:-6px;border-radius:50%;border:3px solid transparent;border-top-color:var(--blue);animation:faceSpin 1.5s linear infinite;pointer-events:none}
+.face-ring2{position:absolute;inset:-12px;border-radius:50%;border:2px solid transparent;border-bottom-color:var(--teal);animation:faceSpin 2.2s linear infinite reverse;pointer-events:none}
+.face-pulse{position:absolute;inset:-20px;border-radius:50%;border:1.5px solid rgba(0,122,255,.15);animation:facePulse 2s ease-in-out infinite;pointer-events:none}
+@keyframes faceSpin{to{transform:rotate(360deg)}}
+@keyframes facePulse{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.08);opacity:.6}}
+.face-status{color:rgba(255,255,255,.7);font-size:14px;font-weight:600;text-align:center;height:20px;z-index:2;margin-bottom:6px}
+.face-status.ok{color:var(--green)}
+.face-status.fail{color:var(--red)}
+.face-dots{display:flex;gap:6px;justify-content:center;z-index:2;margin-bottom:32px}
+.face-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15)}
+.face-dot.on{background:var(--blue);box-shadow:0 0 8px rgba(0,122,255,.5)}
+.face-dot.done{background:var(--green);box-shadow:0 0 8px rgba(52,199,89,.5)}
+.face-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;font-family:var(--font);font-size:16px;font-weight:600;padding:14px 48px;border-radius:14px;cursor:pointer;z-index:2;transition:all .2s;backdrop-filter:blur(8px)}
+.face-btn:hover{background:rgba(255,255,255,.15)}
+.face-btn:active{transform:scale(.96)}
+.face-btn.primary{background:var(--blue);border-color:var(--blue)}
+.face-skip{background:none;border:none;color:rgba(255,255,255,.4);font-family:var(--font);font-size:13px;font-weight:500;cursor:pointer;margin-top:16px;z-index:2;padding:8px 16px}
+.face-skip:hover{color:rgba(255,255,255,.6)}
+.face-bg-glow{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(0,122,255,.08) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-55%);z-index:1}
+.face-lock-ico{margin-bottom:24px;z-index:2;color:rgba(255,255,255,.3)}
+.face-lock-ico svg{width:44px;height:44px}
+.face-logo{display:flex;align-items:center;gap:10px;margin-bottom:8px;z-index:2}
+.face-logo-icon{width:50px;height:50px;border-radius:14px;background:linear-gradient(135deg,#007AFF,#5856D6);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,122,255,.3)}
+.face-logo-icon svg{width:26px;height:26px;color:#fff}
+.face-logo-name{color:#fff;font-size:20px;font-weight:700;letter-spacing:-.3px}
+.face-success-check{width:80px;height:80px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin-bottom:20px;z-index:2;animation:facePopIn .4s cubic-bezier(.175,.885,.32,1.275)}
+.face-success-check svg{width:40px;height:40px;color:#fff}
+@keyframes facePopIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* ── Signature Pad ────────────────────────────────────── */
+.sig-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0}
+.sig-sheet{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:430px;padding:24px 20px max(28px,env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(0,0,0,.15);animation:sigSlide .3s ease}
+@keyframes sigSlide{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sig-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.sig-title{font-size:20px;font-weight:800;letter-spacing:-.3px}
+.sig-close{width:32px;height:32px;border-radius:16px;background:var(--fill);border:none;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--label3)}
+.sig-who{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.sig-who-ico{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sig-who-ico svg{width:20px;height:20px}
+.sig-who-name{font-size:16px;font-weight:700}
+.sig-who-role{font-size:12px;color:var(--label3);font-weight:500}
+.sig-label{font-size:12px;font-weight:600;color:var(--label3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.sig-canvas-wrap{position:relative;border:1.5px dashed var(--sep);border-radius:14px;overflow:hidden;margin-bottom:12px;background:var(--bg)}
+.sig-canvas-wrap.signed{border-color:var(--green);border-style:solid;background:rgba(52,199,89,.03)}
+.sig-canvas{width:100%;height:140px;display:block;cursor:crosshair;touch-action:none}
+.sig-hint{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:12px;color:var(--label4);pointer-events:none}
+.sig-actions{display:flex;gap:10px}
+.sig-actions button{flex:1}
+.sig-clear{background:var(--fill);border:none;height:40px;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:600;color:var(--label2);cursor:pointer}
+.sig-confirm{background:var(--blue);border:none;height:40px;border-radius:10px;font-family:var(--font);font-size:14px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.sig-confirm:disabled{opacity:.4;cursor:not-allowed}
+.sig-confirm svg{width:16px;height:16px}
+.sig-step{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.sig-step-dot{width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.sig-step-dot.pend{background:var(--fill);color:var(--label3)}
+.sig-step-dot.act{background:var(--blue);color:#fff}
+.sig-step-dot.done{background:var(--green);color:#fff}
+.sig-step-line{flex:1;height:2px;background:var(--sep);border-radius:1px}
+.sig-step-line.done{background:var(--green)}
+.sig-preview{width:100%;border-radius:10px;margin-bottom:12px;background:var(--bg);display:flex;overflow:hidden}
+.sig-preview-box{flex:1;padding:12px;text-align:center;border-right:.5px solid var(--sep)}
+.sig-preview-box:last-child{border-right:none}
+.sig-preview-label{font-size:10px;font-weight:600;color:var(--label4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.sig-preview-img{height:50px;width:100%;object-fit:contain}
+.sig-preview-pending{height:50px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--label4)}
+
+/* ── Misc helpers ──────────────────────────────────────── */
+.hidden{display:none!important}.mt{margin-top:16px}.mb{margin-bottom:24px}
+.gap>*+*{margin-top:10px}
+
+@media print{
+  .tabs,.hdr-back,.fab,.dt-close{display:none!important}
+  .dt-overlay{position:static;background:none;backdrop-filter:none;padding:0}
+  .dt-sheet{box-shadow:none;border-radius:0;max-height:none}
+  #app{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="pg-face" class="page active"></div>
+<div id="pg-role" class="page"></div>
+<div id="pg-main" class="page">
+  <div id="tc" style="flex:1;display:flex;flex-direction:column;overflow:hidden"></div>
+  <div class="tabs" id="tbar"></div>
+</div>
+</div>
+<div id="dt-modal"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SVG ICON LIBRARY (clean line icons)
+// ══════════════════════════════════════════════════════════
+const I={
+  cube:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>`,
+  grid:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`,
+  gridFill:`<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>`,
+  doc:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8M8 9h2"/></svg>`,
+  docFill:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 9H8v1h5v-1zm0 4H8v1h5v-1zm2-7V3.5L18.5 8H15z"/></svg>`,
+  swap:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 3l4 4-4 4"/><path d="M20 7H4"/><path d="M8 21l-4-4 4-4"/><path d="M4 17h16"/></svg>`,
+  swapFill:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3l4 4-4 4V8H4V6h12V3zm-8 18l-4-4 4-4v3h12v2H8v3z"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>`,
+  checkFill:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`,
+  shield:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>`,
+  shieldFill:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm-1.06 13.54L7.4 12l1.41-1.41 2.12 2.12 4.24-4.24 1.41 1.41-5.64 5.66z"/></svg>`,
+  chart:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>`,
+  chartFill:`<svg viewBox="0 0 24 24" fill="currentColor"><rect x="16" y="10" width="4" height="10" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="4" y="14" width="4" height="6" rx="1"/></svg>`,
+  clock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>`,
+  chev:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>`,
+  back:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>`,
+  pin:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  flask:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v7.4a2 2 0 01-.5 1.3L4 19a1 1 0 00.8 1.6h14.4a1 1 0 00.8-1.6l-5.5-7.3a2 2 0 01-.5-1.3V3"/></svg>`,
+  truck:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`,
+  people:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>`,
+  map:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><path d="M8 2v16M16 6v16"/></svg>`,
+  contract:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8M16 17H8"/></svg>`,
+  barcode:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 5v14M7 5v14M10 5v14M14 5v14M17 5v14M21 5v14"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>`,
+  lock:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
+  upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>`,
+  pen:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`,
+  layers:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+  play:`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`,
+  ticket:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 9V5a2 2 0 012-2h16a2 2 0 012 2v4a2 2 0 100 4v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4a2 2 0 100-4z"/><path d="M9 3v18"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>`,
+  flag:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>`,
+  cloud:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>`,
+  printer:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>`,
+  eye:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  arrowUp:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`,
+  face:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 10-16 0"/></svg>`,
+  faceScan:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2"/><circle cx="12" cy="10" r="3"/><path d="M12 13c-2.67 0-8 1.34-8 4v1h16v-1c0-2.66-5.33-4-8-4z"/></svg>`,
+  fingerprint:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 10v4M7.5 7.5A7.5 7.5 0 0119.5 12v2"/><path d="M4.5 12a7.5 7.5 0 0115-1.5"/><path d="M12 18a3 3 0 003-3v-3a3 3 0 00-6 0v3"/><path d="M12 22c-4 0-7.5-3.5-7.5-7.5"/></svg>`,
+};
+
+const ic=(name,sz=20)=>`<span class="icon" style="width:${sz}px;height:${sz}px">${I[name]||''}</span>`;
+
+// ══════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════
+const D={
+  con:[
+    {id:'C001',name:'Al-Rashid Contracting',code:'ARC',cn:'CNT-2026-001',wbs:'WBS-SF-001',st:'Active'},
+    {id:'C002',name:'Gulf Build LLC',code:'GBL',cn:'CNT-2026-002',wbs:'WBS-SF-002',st:'Active'},
+    {id:'C003',name:'Oasis Construction',code:'OCC',cn:'CNT-2026-003',wbs:'WBS-SF-003',st:'Active'},
+  ],
+  wf:[
+    {id:'WF01',cid:'C001',proj:'Al-Safa',tw:'Tower 1',code:'WF-T1-A',st:'Open'},
+    {id:'WF02',cid:'C001',proj:'Al-Safa',tw:'Tower 3',code:'WF-T3-B',st:'Open'},
+    {id:'WF03',cid:'C002',proj:'Al-Safa',tw:'Tower 4',code:'WF-T4-A',st:'Open'},
+    {id:'WF04',cid:'C003',proj:'Plant',tw:'Zone A',code:'WF-ZA-1',st:'Open'},
+  ],
+  loc:[
+    {id:'L01',wfid:'WF01',name:'Foundation - Raft',type:'Foundation'},
+    {id:'L02',wfid:'WF01',name:'Ground Floor Slab',type:'Slab'},
+    {id:'L03',wfid:'WF01',name:'Columns Level 1',type:'Column'},
+    {id:'L04',wfid:'WF02',name:'Staircase Core',type:'Staircase'},
+    {id:'L05',wfid:'WF02',name:'Shear Wall B',type:'Shear Wall'},
+    {id:'L06',wfid:'WF03',name:'Roof Slab',type:'Roof'},
+    {id:'L07',wfid:'WF03',name:'Beam Grid C',type:'Beam'},
+    {id:'L08',wfid:'WF04',name:'External Works',type:'External Works'},
+  ],
+  mix:[
+    {id:'M01',code:'C30/20',desc:'Standard structural mix'},
+    {id:'M02',code:'C40/20',desc:'High strength structural'},
+    {id:'M03',code:'C50/20',desc:'Precast / high performance'},
+    {id:'M04',code:'C25/20',desc:'General purpose blinding'},
+  ],
+  req:[
+    {id:'REQ-2026-0001',cid:'C001',cn:'CNT-2026-001',wbs:'WBS-SF-001',proj:'Al-Safa',tw:'Tower 1',wfid:'WF01',lid:'L01',mid:'M02',qty:120,st:'Approved',dt:'28 Mar 2026'},
+    {id:'REQ-2026-0002',cid:'C001',cn:'CNT-2026-001',wbs:'WBS-SF-001',proj:'Al-Safa',tw:'Tower 3',wfid:'WF02',lid:'L04',mid:'M01',qty:40,st:'In Delivery',dt:'29 Mar 2026'},
+    {id:'REQ-2026-0003',cid:'C002',cn:'CNT-2026-002',wbs:'WBS-SF-002',proj:'Al-Safa',tw:'Tower 4',wfid:'WF03',lid:'L06',mid:'M03',qty:80,st:'Submitted',dt:'01 Apr 2026'},
+    {id:'REQ-2026-0004',cid:'C003',cn:'CNT-2026-003',wbs:'WBS-SF-003',proj:'Plant',tw:'Zone A',wfid:'WF04',lid:'L08',mid:'M04',qty:200,st:'Delivery Completed',dt:'25 Mar 2026'},
+    {id:'REQ-2026-0005',cid:'C001',cn:'CNT-2026-001',wbs:'WBS-SF-001',proj:'Al-Safa',tw:'Tower 1',wfid:'WF01',lid:'L03',mid:'M01',qty:30,st:'Draft',dt:'05 Apr 2026'},
+  ],
+  trip:[
+    {id:'TRP-001',rid:'REQ-2026-0002',mx:'MX-14',seq:1,qc:8,qd:8,sig:true,st:'Delivered'},
+    {id:'TRP-002',rid:'REQ-2026-0002',mx:'MX-07',seq:2,qc:8,qd:8,sig:true,st:'Delivered'},
+    {id:'TRP-003',rid:'REQ-2026-0002',mx:'MX-14',seq:3,qc:8,qd:8,sig:false,st:'Dispatched'},
+    {id:'TRP-004',rid:'REQ-2026-0004',mx:'MX-22',seq:1,qc:10,qd:10,sig:true,st:'Delivered'},
+    {id:'TRP-005',rid:'REQ-2026-0004',mx:'MX-09',seq:2,qc:10,qd:10,sig:true,st:'Delivered'},
+    {id:'TRP-006',rid:'REQ-2026-0004',mx:'MX-15',seq:3,qc:10,qd:10,sig:true,st:'Delivered'},
+    {id:'TRP-007',rid:'REQ-2026-0004',mx:'MX-22',seq:4,qc:10,qd:10,sig:true,st:'Delivered'},
+  ],
+  adj:[{id:'ADJ-001',rid:'REQ-2026-0002',type:'Increase',qty:10,reason:'Additional slab area',st:'Approved'}],
+  ft:[{id:'FT-2026-0001',rid:'REQ-2026-0004',cid:'C003',cn:'CNT-2026-003',wbs:'WBS-SF-003',bc:'FT20260001',st:'Issued and Locked',lock:true,ver:1,dt:'27 Mar 2026',contSig:null,dispSig:null}],
+  aud:[
+    {id:'A01',ent:'Request',key:'REQ-2026-0001',act:'Status Change',o:'Submitted',n:'Approved',by:'admin',on:'28 Mar, 10:00'},
+    {id:'A02',ent:'Request',key:'REQ-2026-0002',act:'Status Change',o:'Approved',n:'In Delivery',by:'dispatcher',on:'29 Mar, 08:00'},
+    {id:'A03',ent:'Final Ticket',key:'FT-2026-0001',act:'Issued',o:'',n:'Issued and Locked',by:'system',on:'27 Mar, 14:00'},
+    {id:'A04',ent:'Trip',key:'TRP-001',act:'Create',o:'',n:'Dispatched',by:'dispatcher',on:'29 Mar, 08:15'},
+    {id:'A05',ent:'Adjustment',key:'ADJ-001',act:'Create',o:'',n:'Increase +10',by:'contractor',on:'30 Mar, 07:30'},
+  ],
+  sap:[{id:'SAP-001',ftid:'FT-2026-0001',code:'OCC',cn:'CNT-2026-003',wbs:'WBS-SF-003',qty:200,st:'Pending',err:''}],
+};
+
+const f=(a,id)=>a.find(x=>x.id===id);
+const gt=(rid)=>D.trip.filter(t=>t.rid===rid);
+const ga=(rid)=>D.adj.filter(a=>a.rid===rid);
+const pc=(s)=>({Draft:'p-draft',Submitted:'p-sub',Approved:'p-app',Rejected:'p-rej','In Delivery':'p-del','Partially Delivered':'p-del','Delivery Completed':'p-comp','Pending Final Ticket':'p-pend','Issued and Locked':'p-lock','Posted to SAP':'p-post',Pending:'p-pend',Posted:'p-post',Failed:'p-fail',Cancelled:'p-rej'}[s]||'p-draft');
+
+let role=null,cid=null,stk=[];
+
+// ══════════════════════════════════════════════════════════
+// BARCODE GENERATOR (Code 128 simplified visual)
+// ══════════════════════════════════════════════════════════
+function genBarcode(text){
+  // Generate a deterministic barcode-like pattern from text
+  let bars='';
+  const seed=text.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const patterns=[];
+  for(let i=0;i<text.length;i++){
+    const c=text.charCodeAt(i);
+    patterns.push((c%3===0)?'ww':'w');
+    patterns.push('s');
+    patterns.push((c%2===0)?'ww':'w');
+    patterns.push('s');
+  }
+  // Start bars
+  bars+=`<div class="dt-barcode-bar w"></div><div class="dt-barcode-bar"></div><div class="dt-barcode-bar s"></div><div class="dt-barcode-bar w"></div>`;
+  for(const p of patterns){
+    if(p==='s') bars+=`<div class="dt-barcode-bar s"></div>`;
+    else if(p==='ww') bars+=`<div class="dt-barcode-bar w"></div>`;
+    else bars+=`<div class="dt-barcode-bar"></div>`;
+  }
+  bars+=`<div class="dt-barcode-bar w"></div><div class="dt-barcode-bar"></div><div class="dt-barcode-bar s"></div><div class="dt-barcode-bar w"></div>`;
+  return `<div class="dt-barcode"><div class="dt-barcode-bars">${bars}</div><div class="dt-barcode-val">${text}</div></div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// FACE RECOGNITION ACCESS CONTROL
+// ══════════════════════════════════════════════════════════
+let camStream=null;
+
+function initFace(){
+  document.getElementById('pg-face').innerHTML=`<div class="face-scr">
+    <div class="face-bg-glow"></div>
+    <div class="face-logo">
+      <div class="face-logo-icon">${I.cube}</div>
+      <div class="face-logo-name">Concrete Dispatch</div>
+    </div>
+    <div class="face-sub" style="margin-bottom:40px">Biometric Access Required</div>
+    <div class="face-lock-ico">${I.lock}</div>
+    <div class="face-cam-wrap" id="face-cam">
+      <div class="face-cam-placeholder">${I.faceScan}</div>
+      <div class="face-ring"></div>
+      <div class="face-ring2"></div>
+      <div class="face-pulse"></div>
+    </div>
+    <div class="face-status" id="face-status">Position your face in the circle</div>
+    <div class="face-dots" id="face-dots">
+      <div class="face-dot" id="fd0"></div>
+      <div class="face-dot" id="fd1"></div>
+      <div class="face-dot" id="fd2"></div>
+    </div>
+    <button class="face-btn primary" id="face-btn" onclick="startFaceScan()">
+      ${I.faceScan} &nbsp;Begin Face Scan
+    </button>
+    <button class="face-skip" onclick="skipFace()">Use without biometric</button>
+  </div>`;
+}
+
+async function startFaceScan(){
+  const btn=document.getElementById('face-btn');
+  const status=document.getElementById('face-status');
+  const cam=document.getElementById('face-cam');
+  btn.style.display='none';
+
+  // Try to access camera
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:320}});
+    camStream=stream;
+    cam.innerHTML=`<video autoplay playsinline muted></video><div class="face-ring"></div><div class="face-ring2"></div><div class="face-pulse"></div>`;
+    cam.querySelector('video').srcObject=stream;
+    status.textContent='Scanning face...';
+    status.className='face-status';
+    runFaceSteps();
+  }catch(e){
+    // Camera not available — simulate scan with animation
+    status.textContent='Camera unavailable — using simulated scan';
+    status.className='face-status';
+    cam.innerHTML=`<div class="face-cam-placeholder" style="background:rgba(0,122,255,.08)">${I.face}</div><div class="face-ring"></div><div class="face-ring2"></div><div class="face-pulse"></div>`;
+    setTimeout(()=>{
+      status.textContent='Scanning biometric profile...';
+      runFaceSteps();
+    },800);
+  }
+}
+
+function runFaceSteps(){
+  const status=document.getElementById('face-status');
+  const steps=['Detecting face...','Analyzing biometrics...','Verifying identity...'];
+  let step=0;
+
+  function next(){
+    if(step<3){
+      document.getElementById('fd'+step).classList.add('on');
+      status.textContent=steps[step];
+      step++;
+      setTimeout(next,1000+Math.random()*600);
+    }else{
+      faceSuccess();
+    }
+  }
+  setTimeout(next,600);
+}
+
+function faceSuccess(){
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  const status=document.getElementById('face-status');
+  status.textContent='Identity verified';
+  status.className='face-status ok';
+  [0,1,2].forEach(i=>document.getElementById('fd'+i).className='face-dot done');
+
+  // Replace camera with success checkmark
+  const cam=document.getElementById('face-cam');
+  cam.style.boxShadow='0 0 60px rgba(52,199,89,.25)';
+  cam.innerHTML=`<div class="face-success-check">${I.check}</div>`;
+  cam.style.display='flex';
+  cam.style.alignItems='center';
+  cam.style.justifyContent='center';
+  cam.style.background='rgba(52,199,89,.08)';
+
+  setTimeout(()=>{
+    document.getElementById('pg-face').classList.remove('active');
+    document.getElementById('pg-role').classList.add('active');
+  },1200);
+}
+
+function skipFace(){
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  document.getElementById('pg-face').classList.remove('active');
+  document.getElementById('pg-role').classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════
+// ROLE SELECTION
+// ══════════════════════════════════════════════════════════
+function initRoles(){
+  const roles=[
+    {id:'contractor',name:'Contractor',desc:'Raise requests, track deliveries',col:'var(--blue)',bg:'var(--blue15)',ico:I.cube,cid:'C001'},
+    {id:'dispatcher',name:'Dispatcher',desc:'Manage dispatch queue & trips',col:'var(--orange)',bg:'var(--orange15)',ico:I.swap},
+    {id:'receiver',name:'Receiver',desc:'Confirm deliveries on site',col:'var(--green)',bg:'var(--green15)',ico:I.check},
+    {id:'admin',name:'Admin',desc:'Master data & ticket amendments',col:'var(--purple)',bg:'var(--purple15)',ico:I.shield},
+    {id:'finance',name:'SAP / Finance',desc:'Export queue & posting status',col:'var(--red)',bg:'var(--red15)',ico:I.chart},
+  ];
+  document.getElementById('pg-role').innerHTML=`<div class="role-scr">
+    <div class="role-logo">${I.cube}</div>
+    <div class="role-h">Concrete Dispatch</div>
+    <div class="role-sh">Select your role to continue</div>
+    <div class="rl">${roles.map(r=>`<div class="rc2" onclick="selRole('${r.id}','${r.cid||''}')">
+      <div class="rc2-i" style="background:${r.bg};color:${r.col}">${r.ico}</div>
+      <div class="rc2-t"><div class="rc2-n">${r.name}</div><div class="rc2-d">${r.desc}</div></div>
+      <div class="rc2-a">${I.chev}</div>
+    </div>`).join('')}</div>
+    <div class="ver">v1.0.0</div>
+  </div>`;
+}
+
+function selRole(r,c){
+  role=r;cid=c||null;
+  document.getElementById('pg-role').classList.remove('active');
+  document.getElementById('pg-main').classList.add('active');
+  buildTabs();showT(0);
+}
+
+function swRole(){
+  document.getElementById('pg-main').classList.remove('active');
+  document.getElementById('pg-role').classList.add('active');
+}
+
+function lockApp(){
+  document.getElementById('pg-main').classList.remove('active');
+  document.getElementById('pg-role').classList.remove('active');
+  initFace();
+  document.getElementById('pg-face').classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════════
+const TC={
+  contractor:[{l:'Dashboard',i:'grid',ia:'gridFill',fn:rDash},{l:'Requests',i:'doc',ia:'docFill',fn:rReqList}],
+  dispatcher:[{l:'Dashboard',i:'grid',ia:'gridFill',fn:rDash},{l:'Dispatch',i:'swap',ia:'swapFill',fn:rDispatch},{l:'Tickets',i:'ticket',ia:'ticket',fn:rTickets}],
+  receiver:[{l:'Dashboard',i:'grid',ia:'gridFill',fn:rDash},{l:'Receiving',i:'check',ia:'checkFill',fn:rRecv}],
+  admin:[{l:'Dashboard',i:'grid',ia:'gridFill',fn:rDash},{l:'Admin',i:'shield',ia:'shieldFill',fn:rAdmin},{l:'Audit',i:'clock',ia:'clock',fn:rAudit}],
+  finance:[{l:'Dashboard',i:'grid',ia:'gridFill',fn:rDash},{l:'SAP Queue',i:'cloud',ia:'cloud',fn:rSAP}],
+};
+let at=0;
+
+function buildTabs(){
+  const t=TC[role]||[];
+  document.getElementById('tbar').innerHTML=t.map((x,i)=>`<button class="tab${i===0?' on':''}" id="tb${i}" onclick="showT(${i})">${I[i===0?x.ia:x.i]}<span>${x.l}</span></button>`).join('');
+}
+
+function showT(i){
+  at=i;stk=[];
+  document.querySelectorAll('.tab').forEach((e,j)=>{e.classList.toggle('on',j===i);const t=TC[role][j];e.innerHTML=(j===i?I[t.ia]:I[t.i])+`<span>${t.l}</span>`;});
+  TC[role][i].fn();
+}
+
+function rP(h){document.getElementById('tc').innerHTML=h}
+function push(fn){stk.push(at);fn()}
+function pop(){if(stk.length){stk.pop();TC[role][at].fn()}}
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════
+function rDash(){
+  const c=f(D.con,cid);const nm=role==='contractor'?(c?.name||'Contractor'):role.charAt(0).toUpperCase()+role.slice(1)+' User';
+  const tot=D.req.length,app=D.req.filter(r=>r.st==='Approved').length,ind=D.req.filter(r=>['In Delivery','Partially Delivered'].includes(r.st)).length;
+  const comp=D.req.filter(r=>['Delivery Completed','Pending Final Ticket','Issued and Locked','Signed Copy Returned','Posted to SAP','Closed'].includes(r.st)).length;
+  const tix=D.ft.length,sp=D.sap.filter(s=>s.st==='Pending').length;
+  const cols={contractor:'var(--blue)',dispatcher:'var(--orange)',receiver:'var(--green)',admin:'var(--purple)',finance:'var(--red)'};
+  const rc=cols[role];
+  const hr=new Date().getHours();const tod=hr<12?'Morning':hr<17?'Afternoon':'Evening';
+
+  let qa='';
+  if(role==='contractor') qa=`
+    <div class="row" onclick="push(rNewReq)"><div class="row-ico" style="background:var(--blue);color:#fff">${I.plus}</div><div class="row-body"><div class="row-lbl">New Request</div></div><div class="row-arr">${I.chev}</div></div>
+    <div class="row" onclick="showT(1)"><div class="row-ico" style="background:var(--green);color:#fff">${I.doc}</div><div class="row-body"><div class="row-lbl">My Requests</div></div><div class="row-arr">${I.chev}</div></div>`;
+  else if(role==='dispatcher') qa=`
+    <div class="row" onclick="showT(1)"><div class="row-ico" style="background:var(--orange);color:#fff">${I.swap}</div><div class="row-body"><div class="row-lbl">Dispatch Board</div></div>${app?`<div class="badge">${app}</div>`:''}<div class="row-arr">${I.chev}</div></div>
+    <div class="row" onclick="showT(2)"><div class="row-ico" style="background:var(--purple);color:#fff">${I.ticket}</div><div class="row-body"><div class="row-lbl">Final Tickets</div></div><div class="row-arr">${I.chev}</div></div>`;
+  else if(role==='receiver') qa=`<div class="row" onclick="showT(1)"><div class="row-ico" style="background:var(--green);color:#fff">${I.check}</div><div class="row-body"><div class="row-lbl">Pending Receipts</div></div>${ind?`<div class="badge">${ind}</div>`:''}<div class="row-arr">${I.chev}</div></div>`;
+  else if(role==='admin') qa=`
+    <div class="row" onclick="showT(1)"><div class="row-ico" style="background:var(--purple);color:#fff">${I.settings}</div><div class="row-body"><div class="row-lbl">Master Data</div></div><div class="row-arr">${I.chev}</div></div>
+    <div class="row" onclick="showT(2)"><div class="row-ico" style="background:var(--orange);color:#fff">${I.clock}</div><div class="row-body"><div class="row-lbl">Audit Log</div></div><div class="row-arr">${I.chev}</div></div>`;
+  else qa=`<div class="row" onclick="showT(1)"><div class="row-ico" style="background:var(--red);color:#fff">${I.upload}</div><div class="row-body"><div class="row-lbl">SAP Export Queue</div></div>${sp?`<div class="badge">${sp}</div>`:''}<div class="row-arr">${I.chev}</div></div>`;
+
+  rP(`<div class="scroll">
+    <div class="greet"><div><div class="greet-s">Good ${tod}</div><div class="greet-n">${nm}</div></div><div class="role-c" style="background:${rc}12;color:${rc}">${role.charAt(0).toUpperCase()+role.slice(1)}</div></div>
+    <div class="kpi-r"><div class="kpi"><div class="kpi-i" style="background:var(--blue15);color:var(--blue)">${I.layers}</div><div class="kpi-v" style="color:var(--blue)">${tot}</div><div class="kpi-l">Total</div></div><div class="kpi"><div class="kpi-i" style="background:var(--green15);color:var(--green)">${I.check}</div><div class="kpi-v" style="color:var(--green)">${app}</div><div class="kpi-l">Approved</div></div><div class="kpi"><div class="kpi-i" style="background:var(--orange15);color:var(--orange)">${I.truck}</div><div class="kpi-v" style="color:var(--orange)">${ind}</div><div class="kpi-l">In Transit</div></div></div>
+    <div class="kpi-r mb"><div class="kpi"><div class="kpi-i" style="background:var(--green15);color:#248A3D">${I.flag}</div><div class="kpi-v" style="color:#248A3D">${comp}</div><div class="kpi-l">Completed</div></div><div class="kpi"><div class="kpi-i" style="background:var(--purple15);color:var(--purple)">${I.ticket}</div><div class="kpi-v" style="color:var(--purple)">${tix}</div><div class="kpi-l">Tickets</div></div><div class="kpi"><div class="kpi-i" style="background:var(--red15);color:var(--red)">${I.upload}</div><div class="kpi-v" style="color:var(--red)">${sp}</div><div class="kpi-l">SAP Pending</div></div></div>
+    <div class="sec"><div class="sec-t">Quick Actions</div><div class="card">${qa}</div></div>
+    <div class="sec"><div class="sec-t">Recent Requests</div><div class="card">${D.req.slice(0,4).map(r=>{const c2=f(D.con,r.cid);return`<div class="row" onclick="push(()=>rDetail('${r.id}'))"><div class="row-body"><div class="row-lbl">${r.id}</div><div class="row-sub">${c2?.name} — ${r.proj} / ${r.tw}</div></div><div class="row-val">${r.qty}m³</div><div class="row-arr">${I.chev}</div></div>`}).join('')}</div></div>
+    <div style="text-align:center;padding:20px;display:flex;justify-content:center;gap:24px"><button style="background:none;border:none;color:var(--blue);font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer" onclick="swRole()">Switch Role</button><button style="background:none;border:none;color:var(--red);font-family:var(--font);font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px" onclick="lockApp()">${I.lock} Lock App</button></div>
+  </div>`);
+}
+
+// ══════════════════════════════════════════════════════════
+// REQUEST LIST
+// ══════════════════════════════════════════════════════════
+function rReqList(){
+  let reqs=role==='contractor'?D.req.filter(r=>r.cid===cid):D.req;
+  rP(`<div class="hdr"><div class="hdr-lg">Requests</div></div>
+    <div class="chips" id="rf">${['All','Draft','Submitted','Approved','In Delivery','Completed'].map((x,i)=>`<button class="chip${i===0?' on':''}" onclick="fReq('${x}',this)">${x}</button>`).join('')}</div>
+    <div class="scroll" id="rl">${rcards(reqs)}</div>
+    ${role==='contractor'?`<button class="fab" onclick="push(rNewReq)">${I.plus}</button>`:''}
+  `);
+}
+
+function fReq(x,el){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  let r=role==='contractor'?D.req.filter(r=>r.cid===cid):D.req;
+  if(x!=='All'){if(x==='Completed')r=r.filter(q=>['Delivery Completed','Pending Final Ticket','Issued and Locked','Posted to SAP','Closed'].includes(q.st));else r=r.filter(q=>q.st===x);}
+  document.getElementById('rl').innerHTML=rcards(r);
+}
+
+function rcards(reqs){
+  if(!reqs.length)return`<div class="empty">${I.doc}<div class="empty-t">No Requests</div><div class="empty-m">No requests match the current filter.</div></div>`;
+  return reqs.map(r=>{const c=f(D.con,r.cid),m=f(D.mix,r.mid),w=f(D.wf,r.wfid);
+    return`<div class="rcard" onclick="push(()=>rDetail('${r.id}'))"><div class="rc-head"><div class="rc-id">${r.id}</div><span class="pill ${pc(r.st)}">${r.st}</span></div><div class="rc-info">${I.pin} ${r.proj} / ${r.tw} — ${w?.code||''}</div><div class="rc-info">${I.flask} ${m?.code||''} — ${m?.desc||''}</div><div class="rc-foot"><div class="rc-qb"><div class="rc-ql">Requested</div><div class="rc-qv">${r.qty} m³</div></div><div class="rc-qb"><div class="rc-ql">Date</div><div class="rc-qv">${r.dt}</div></div><span style="color:var(--label4)">${I.chev}</span></div></div>`}).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// REQUEST DETAIL
+// ══════════════════════════════════════════════════════════
+function rDetail(id){
+  const r=f(D.req,id);if(!r)return;
+  const c=f(D.con,r.cid),w=f(D.wf,r.wfid),l=f(D.loc,r.lid),m=f(D.mix,r.mid);
+  const trips=gt(id),adjs=ga(id);
+  const td=trips.reduce((s,t)=>s+(t.qd||0),0),ti=adjs.filter(a=>a.type==='Increase').reduce((s,a)=>s+a.qty,0),tr=adjs.filter(a=>a.type==='Reduction').reduce((s,a)=>s+a.qty,0);
+  const eff=r.qty+ti-tr,bal=eff-td;
+
+  let acts='';
+  if(r.st==='Draft')acts=`<div class="px mt gap"><button class="btn btn-b" onclick="cSt('${id}','Submitted')">${I.upload} Submit Request</button></div>`;
+  if(r.st==='Submitted'&&['dispatcher','admin'].includes(role))acts=`<div class="px mt gap"><button class="btn btn-g" onclick="cSt('${id}','Approved')">${I.check} Approve</button><button class="btn btn-o" style="border-color:var(--red);color:var(--red)" onclick="cSt('${id}','Rejected')">Reject</button></div>`;
+  if(role==='contractor'&&['Draft','Submitted','Approved'].includes(r.st))acts+=`<div class="px mt"><button class="btn btn-o" onclick="push(()=>rInc('${id}'))">${I.arrowUp} Request Increase</button></div>`;
+
+  // Check for ticket
+  const tk=D.ft.find(t=>t.rid===id);
+  let tkBtn='';
+  if(tk)tkBtn=`<div class="px mt"><button class="btn btn-b" onclick="showDT('${tk.id}')">${I.printer} View Delivery Ticket</button></div>`;
+
+  rP(`<div class="hdr"><button class="hdr-back" onclick="pop()">${I.back} Back</button><div class="hdr-title">Request Detail</div></div>
+    <div class="scroll">
+      <div class="rcard" style="margin-bottom:20px;cursor:default"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:22px;font-weight:800;letter-spacing:-.3px">${r.id}</span><span class="pill ${pc(r.st)}">${r.st}</span></div><div style="font-size:16px;color:var(--label2);font-weight:500">${c?.name}</div><div style="font-size:13px;color:var(--label3);margin-top:2px">${r.proj} / ${r.tw} — ${w?.code||''}</div></div>
+      <div class="sec"><div class="sec-t">Quantity Summary</div><div class="card"><div class="qg"><div class="qb"><div class="qb-v" style="color:var(--blue)">${r.qty}</div><div class="qb-l">Requested</div></div><div class="qb"><div class="qb-v" style="color:var(--green)">+${ti}</div><div class="qb-l">Increases</div></div><div class="qb"><div class="qb-v" style="color:var(--red)">-${tr}</div><div class="qb-l">Reductions</div></div></div><div class="qg" style="border-top:.33px solid var(--sep)"><div class="qb"><div class="qb-v" style="color:var(--purple)">${eff}</div><div class="qb-l">Effective</div></div><div class="qb"><div class="qb-v" style="color:var(--orange)">${td}</div><div class="qb-l">Delivered</div></div><div class="qb"><div class="qb-v" style="color:${bal>0?'var(--red)':'var(--green)'}">${bal}</div><div class="qb-l">Balance</div></div></div></div></div>
+      <div class="sec"><div class="sec-t">Details</div><div class="card">
+        <div class="row" style="cursor:default"><div class="row-ico" style="background:var(--purple15);color:var(--purple)">${I.contract}</div><div class="row-body"><div class="row-lbl">Contract No.</div></div><div class="row-val">${r.cn}</div></div>
+        <div class="row" style="cursor:default"><div class="row-ico" style="background:var(--blue15);color:var(--blue)">${I.barcode}</div><div class="row-body"><div class="row-lbl">WBS Code</div></div><div class="row-val">${r.wbs}</div></div>
+        <div class="row" style="cursor:default"><div class="row-ico" style="background:var(--orange15);color:var(--orange)">${I.pin}</div><div class="row-body"><div class="row-lbl">Location</div></div><div class="row-val">${l?.name||'—'}</div></div>
+        <div class="row" style="cursor:default"><div class="row-ico" style="background:var(--green15);color:var(--green)">${I.flask}</div><div class="row-body"><div class="row-lbl">Mix</div></div><div class="row-val">${m?.code||'—'}</div></div>
+        <div class="row" style="cursor:default"><div class="row-ico" style="background:var(--fill);color:var(--label3)">${I.calendar}</div><div class="row-body"><div class="row-lbl">Created</div></div><div class="row-val">${r.dt}</div></div>
+      </div></div>
+      <div class="sec"><div class="sec-t">Trips (${trips.length})</div><div class="card">${trips.length===0?'<div style="padding:16px;color:var(--label3);font-size:15px">No trips recorded yet.</div>':trips.map(t=>`<div class="row" style="cursor:default"><div class="row-ico" style="background:${t.sig?'var(--green15)':'var(--orange15)'};color:${t.sig?'var(--green)':'var(--orange)'}">${t.sig?I.check:I.clock}</div><div class="row-body"><div class="row-lbl">Trip ${t.seq} — Mixer ${t.mx}</div><div class="row-sub">${t.st} ${t.sig?'· Signed':'· Pending signature'}</div></div><div class="row-val">${t.qd} m³</div></div>`).join('')}</div></div>
+      ${adjs.length?`<div class="sec"><div class="sec-t">Adjustments</div><div class="card">${adjs.map(a=>`<div class="row" style="cursor:default"><div class="row-ico" style="background:${a.type==='Increase'?'var(--green15)':'var(--red15)'};color:${a.type==='Increase'?'var(--green)':'var(--red)'}">${I.arrowUp}</div><div class="row-body"><div class="row-lbl">${a.type} — ${a.qty} m³</div><div class="row-sub">${a.reason}</div></div></div>`).join('')}</div></div>`:''}
+      ${tkBtn}${acts}
+    </div>`);
+}
+
+function cSt(id,ns){const r=f(D.req,id);if(r){const o=r.st;r.st=ns;D.aud.unshift({id:'A'+Date.now(),ent:'Request',key:id,act:'Status Change',o,n:ns,by:role,on:'Just now'});rDetail(id);}}
+
+// ══════════════════════════════════════════════════════════
+// NEW REQUEST
+// ══════════════════════════════════════════════════════════
+function rNewReq(){
+  const c=f(D.con,cid);const wfs=D.wf.filter(w=>w.cid===cid&&w.st==='Open');
+  rP(`<div class="hdr"><button class="hdr-back" onclick="pop()">${I.back} Back</button><div class="hdr-title">New Request</div></div>
+    <div class="scroll">
+      <div class="sec"><div class="sec-t">Contractor Information</div><div class="card"><div class="ig"><div class="ig-c"><div class="ig-cl">Contractor</div><div class="ig-cv">${c?.name||'—'}</div></div><div class="ig-c"><div class="ig-cl">Code</div><div class="ig-cv">${c?.code||'—'}</div></div><div class="ig-c"><div class="ig-cl">Contract No.</div><div class="ig-cv">${c?.cn||'—'}</div></div><div class="ig-c"><div class="ig-cl">WBS Code</div><div class="ig-cv">${c?.wbs||'—'}</div></div></div></div><div class="sec-f">Auto-filled from your account. Cannot be edited.</div></div>
+      <div class="sec"><div class="sec-t">Pour Location</div><div class="card" style="padding:16px">
+        <div class="fld"><div class="fld-l">Work Front</div><select class="fld-s" id="nf-wf" onchange="uLoc()"><option value="">Select work front...</option>${wfs.map(w=>`<option value="${w.id}">${w.proj} / ${w.tw} — ${w.code}</option>`).join('')}</select></div>
+        <div class="fld"><div class="fld-l">Location</div><select class="fld-s" id="nf-loc"><option value="">Select work front first</option></select></div>
+      </div></div>
+      <div class="sec"><div class="sec-t">Concrete Details</div><div class="card" style="padding:16px">
+        <div class="fld"><div class="fld-l">Mix Design</div><select class="fld-s" id="nf-mix"><option value="">Select mix...</option>${D.mix.map(m=>`<option value="${m.id}">${m.code} — ${m.desc}</option>`).join('')}</select></div>
+        <div class="fld"><div class="fld-l">Required Quantity (m³)</div><input type="number" class="fld-i" id="nf-qty" placeholder="e.g. 120" min="2" step="2"/></div>
+      </div></div>
+      <div class="px mt gap"><button class="btn btn-b" onclick="subReq()">${I.plus} Create Request</button></div>
+    </div>`);
+}
+
+function uLoc(){const wfid=document.getElementById('nf-wf').value;const l=D.loc.filter(x=>x.wfid===wfid);const s=document.getElementById('nf-loc');s.innerHTML=l.length?'<option value="">Select location...</option>'+l.map(x=>`<option value="${x.id}">${x.name}</option>`).join(''):'<option value="">No locations</option>';}
+
+function subReq(){
+  const wfid=$v('nf-wf'),lid=$v('nf-loc'),mid=$v('nf-mix'),qty=parseInt($v('nf-qty'));
+  if(!wfid||!lid||!mid||!qty||qty<=0){alert('Please fill in all fields.');return;}
+  const w=f(D.wf,wfid),c=f(D.con,cid),id=`REQ-2026-${String(D.req.length+1).padStart(4,'0')}`;
+  D.req.unshift({id,cid,cn:c.cn,wbs:c.wbs,proj:w.proj,tw:w.tw,wfid,lid,mid,qty,st:'Draft',dt:'05 Apr 2026'});
+  D.aud.unshift({id:'A'+Date.now(),ent:'Request',key:id,act:'Create',o:'',n:'Draft',by:'contractor',on:'Just now'});
+  alert(`Request ${id} created.`);pop();
+}
+
+function $v(id){return document.getElementById(id)?.value||'';}
+
+// ══════════════════════════════════════════════════════════
+// REQUEST INCREASE
+// ══════════════════════════════════════════════════════════
+function rInc(rid){
+  const r=f(D.req,rid);
+  rP(`<div class="hdr"><button class="hdr-back" onclick="pop()">${I.back} Back</button><div class="hdr-title">Request Increase</div></div>
+    <div class="scroll">
+      <div class="sec"><div class="sec-t">Current Request</div><div class="card"><div class="row" style="cursor:default"><div class="row-body"><div class="row-lbl">${rid}</div></div><div class="row-val">${r?.qty} m³</div></div></div></div>
+      <div class="sec"><div class="sec-t">Increase Details</div><div class="card" style="padding:16px">
+        <div class="fld"><div class="fld-l">Additional Quantity (m³)</div><input type="number" class="fld-i" id="inc-q" placeholder="e.g. 20" min="2" step="2"/></div>
+        <div class="fld"><div class="fld-l">Reason</div><select class="fld-s" id="inc-r"><option value="">Select reason...</option><option>Additional slab area</option><option>Design change</option><option>Waste allowance</option><option>Over-excavation fill</option><option>Other</option></select></div>
+      </div><div class="sec-f">Only increase requests are permitted. Reductions must be initiated by the batch plant.</div></div>
+      <div class="px mt"><button class="btn btn-g" onclick="subInc('${rid}')">${I.arrowUp} Submit Increase</button></div>
+    </div>`);
+}
+
+function subInc(rid){
+  const q=parseInt($v('inc-q')),r=$v('inc-r');if(!q||!r){alert('Fill in all fields.');return;}
+  D.adj.push({id:'ADJ-'+String(D.adj.length+1).padStart(3,'0'),rid,type:'Increase',qty:q,reason:r,st:'Approved'});
+  D.aud.unshift({id:'A'+Date.now(),ent:'Adjustment',key:rid,act:'Create',o:'',n:`Increase +${q}`,by:'contractor',on:'Just now'});
+  alert(`+${q} m³ increase added.`);pop();
+}
+
+// ══════════════════════════════════════════════════════════
+// DISPATCH BOARD
+// ══════════════════════════════════════════════════════════
+function rDispatch(){
+  const q=D.req.filter(r=>['Approved','In Delivery','Partially Delivered'].includes(r.st));
+  const na=D.req.filter(r=>r.st==='Approved').length,ni=D.req.filter(r=>r.st==='In Delivery').length;
+  rP(`<div class="hdr"><div class="hdr-lg">Dispatch Board</div></div>
+    <div class="sum-r"><div class="sum-c" style="background:var(--green15);color:var(--green)"><strong>${na}</strong> Approved</div><div class="sum-c" style="background:var(--orange15);color:var(--orange)"><strong>${ni}</strong> In Delivery</div></div>
+    <div class="scroll">${q.length===0?`<div class="empty">${I.swap}<div class="empty-t">Queue Empty</div><div class="empty-m">No approved requests awaiting dispatch.</div></div>`:q.map(r=>{
+      const c=f(D.con,r.cid),m=f(D.mix,r.mid),w=f(D.wf,r.wfid),trips=gt(r.id),del=trips.reduce((s,t)=>s+(t.qd||0),0),pct=Math.min(Math.round(del/r.qty*100),100);
+      return`<div class="rcard" onclick="push(()=>rTrip('${r.id}'))"><div class="rc-head"><div><div class="rc-id">${r.id}</div><div style="font-size:13px;color:var(--label3);margin-top:2px">${c?.name}</div></div><span class="pill ${pc(r.st)}">${r.st}</span></div><div class="rc-info">${I.pin} ${r.proj} / ${r.tw} — ${w?.code||''}</div><div style="font-size:13px;color:var(--label2);margin-bottom:2px">${m?.code} · ${del}/${r.qty} m³ delivered</div><div class="prog"><div class="prog-f" style="width:${pct}%"></div></div><div class="rc-foot"><span style="font-size:13px;color:var(--label3);flex:1">${trips.length} trips</span>${r.st==='Approved'?`<button class="btn-sm" style="background:var(--blue15);color:var(--blue);border:none;font-family:var(--font);cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px" onclick="event.stopPropagation();cSt2('${r.id}','In Delivery')">${I.play} Start</button>`:''}<span style="color:var(--label4);margin-left:8px">${I.chev}</span></div></div>`;
+    }).join('')}</div>`);
+}
+
+function cSt2(id,ns){const r=f(D.req,id);if(r){r.st=ns;D.aud.unshift({id:'A'+Date.now(),ent:'Request',key:id,act:'Status Change',o:'Approved',n:ns,by:'dispatcher',on:'Just now'});rDispatch();}}
+
+// ══════════════════════════════════════════════════════════
+// TRIP MANAGEMENT
+// ══════════════════════════════════════════════════════════
+function rTrip(rid){
+  const r=f(D.req,rid),c=f(D.con,r?.cid),m=f(D.mix,r?.mid);
+  const trips=gt(rid),td=trips.reduce((s,t)=>s+(t.qd||0),0),bal=r.qty-td;
+  rP(`<div class="hdr"><button class="hdr-back" onclick="pop()">${I.back} Back</button><div class="hdr-title">Trip Management</div></div>
+    <div class="scroll">
+      <div class="rcard" style="cursor:default;margin-bottom:20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:20px;font-weight:800">${rid}</span><span class="pill ${pc(r.st)}">${r.st}</span></div><div style="font-size:16px;color:var(--label2);font-weight:500">${c?.name}</div><div style="font-size:13px;color:var(--label3)">${m?.code} — ${m?.desc}</div><div class="qg" style="border-top:.33px solid var(--sep);margin-top:12px;padding-top:10px"><div class="qb"><div class="qb-v" style="color:var(--blue)">${r.qty}</div><div class="qb-l">Requested</div></div><div class="qb"><div class="qb-v" style="color:var(--green)">${td}</div><div class="qb-l">Delivered</div></div><div class="qb"><div class="qb-v" style="color:${bal>0?'var(--orange)':'var(--green)'}">${bal}</div><div class="qb-l">Balance</div></div></div></div>
+      <div class="sec"><div class="sec-t">Trips (${trips.length})</div><div class="card">${trips.length===0?'<div style="padding:16px;color:var(--label3);font-size:15px">No trips yet. Add one below.</div>':trips.map(t=>`<div class="row" style="cursor:default"><div class="row-ico" style="background:${t.sig?'var(--green15)':'var(--orange15)'};color:${t.sig?'var(--green)':'var(--orange)'}">${t.sig?I.check:I.clock}</div><div class="row-body"><div class="row-lbl">Trip ${t.seq} — ${t.mx}</div><div class="row-sub">${t.st} ${t.sig?'· Signed':'· Awaiting signature'}</div></div><div class="row-val">${t.qd} m³</div></div>`).join('')}</div></div>
+      ${['In Delivery','Partially Delivered'].includes(r.st)?`
+        <div class="sec"><div class="sec-t">Add New Trip</div><div class="card" style="padding:16px">
+          <div class="fld"><div class="fld-l">Mixer / Truck Number</div><input type="text" class="fld-i" id="t-mx" placeholder="e.g. MX-14"/></div>
+          <div class="fld"><div class="fld-l">Quantity (m³)</div><input type="number" class="fld-i" id="t-q" placeholder="e.g. 8" min="1"/></div>
+          <button class="btn btn-b" onclick="addT('${rid}')">${I.truck} Dispatch Trip</button>
+        </div></div>
+        <div class="px mt"><button class="btn btn-g" onclick="compDel('${rid}')">${I.check} Complete Delivery</button></div>
+      `:''}
+    </div>`);
+}
+
+function addT(rid){
+  const mx=$v('t-mx'),q=parseInt($v('t-q'));if(!mx||!q){alert('Enter mixer number and quantity.');return;}
+  const trips=gt(rid);D.trip.push({id:'TRP-'+String(D.trip.length+1).padStart(3,'0'),rid,mx,seq:trips.length+1,qc:q,qd:q,sig:false,st:'Dispatched'});
+  D.aud.unshift({id:'A'+Date.now(),ent:'Trip',key:rid,act:'Create',o:'',n:`${mx} ${q}m³`,by:'dispatcher',on:'Just now'});
+  alert(`Trip dispatched: ${mx} with ${q} m³`);rTrip(rid);
+}
+
+function compDel(rid){if(confirm('Mark delivery as complete?')){cSt(rid,'Delivery Completed');pop();}}
+
+// ══════════════════════════════════════════════════════════
+// FINAL TICKETS
+// ══════════════════════════════════════════════════════════
+function rTickets(){
+  const ready=D.req.filter(r=>r.st==='Delivery Completed');
+  rP(`<div class="hdr"><div class="hdr-lg">Final Tickets</div></div>
+    <div class="scroll">
+      ${ready.length?`<div class="sec-t" style="padding-top:8px">READY FOR ISSUANCE — REQUIRES SIGNATURES</div>${ready.map(r=>{const c=f(D.con,r.cid);return`<div class="rcard" onclick="issTk('${r.id}')"><div style="display:flex;align-items:center"><div class="row-ico" style="background:var(--purple15);color:var(--purple)">${I.ticket}</div><div style="flex:1"><div style="font-weight:700">${r.id}</div><div style="font-size:13px;color:var(--label3)">${c?.name} — ${r.qty} m³</div><div style="display:flex;align-items:center;gap:4px;margin-top:4px;font-size:11px;color:var(--label4)">${I.pen} Contractor + Dispatcher signatures required</div></div><button class="btn-sm" style="background:var(--purple);color:#fff;border:none;font-family:var(--font);cursor:pointer;font-weight:700;display:flex;align-items:center;gap:4px">${I.pen} Sign & Issue</button></div></div>`}).join('')}`:''}
+      <div class="sec-t" style="padding-top:8px">ISSUED TICKETS (${D.ft.length})</div>
+      ${D.ft.length===0?`<div class="empty">${I.ticket}<div class="empty-t">No Tickets</div></div>`:D.ft.map(t=>{const c=f(D.con,t.cid);return`<div class="rcard" onclick="showDT('${t.id}')" style="cursor:pointer"><div style="display:flex;align-items:center"><div class="row-ico" style="background:var(--green15);color:var(--green)">${I.lock}</div><div style="flex:1"><div style="font-weight:700">${t.id}</div><div style="font-size:13px;color:var(--label3)">${c?.name} — ${t.cn}</div><div style="font-size:11px;color:var(--label4);font-family:'Courier New',monospace;margin-top:3px;letter-spacing:1px">${t.bc}</div></div><span class="pill ${pc(t.st)}" style="margin-right:8px">${t.st}</span><span style="color:var(--label3)">${I.eye}</span></div></div>`}).join('')}
+    </div>`);
+}
+
+// ── Signature collection state ──
+let sigState={rid:null,step:0,contSig:null,dispSig:null,drawing:false,ctx:null,canvas:null};
+
+function issTk(rid){
+  // Open signature collection flow instead of directly issuing
+  sigState={rid,step:1,contSig:null,dispSig:null,drawing:false,ctx:null,canvas:null};
+  showSigPad();
+}
+
+function showSigPad(){
+  const r=f(D.req,sigState.rid),c=f(D.con,r?.cid);
+  const step=sigState.step; // 1=contractor, 2=dispatcher
+  const isContr=step===1;
+  const who=isContr?{name:c?.name||'Contractor',role:'Contractor Representative',col:'var(--blue)',bg:'var(--blue15)',ico:I.cube}:{name:'Dispatch Officer',role:'Dispatcher',col:'var(--orange)',bg:'var(--orange15)',ico:I.swap};
+
+  document.getElementById('dt-modal').innerHTML=`
+    <div class="sig-overlay">
+      <div class="sig-sheet">
+        <div class="sig-head">
+          <div class="sig-title">Sign Delivery Ticket</div>
+          <button class="sig-close" onclick="closeSig()">&times;</button>
+        </div>
+        <div class="sig-step">
+          <div class="sig-step-dot ${step===1?'act':'done'}">${step>1?I.check:'1'}</div>
+          <div class="sig-step-line ${step>1?'done':''}"></div>
+          <div class="sig-step-dot ${step===2?'act':'pend'}">${step>2?I.check:'2'}</div>
+          <div class="sig-step-line"></div>
+          <div class="sig-step-dot pend">${I.ticket}</div>
+        </div>
+        ${sigState.contSig?`<div class="sig-preview"><div class="sig-preview-box"><div class="sig-preview-label">Contractor</div><img class="sig-preview-img" src="${sigState.contSig}"/></div><div class="sig-preview-box"><div class="sig-preview-label">Dispatcher</div>${sigState.dispSig?`<img class="sig-preview-img" src="${sigState.dispSig}"/>`:'<div class="sig-preview-pending">Awaiting...</div>'}</div></div>`:''}
+        <div class="sig-who">
+          <div class="sig-who-ico" style="background:${who.bg};color:${who.col}">${who.ico}</div>
+          <div><div class="sig-who-name">${who.name}</div><div class="sig-who-role">${who.role} · Step ${step} of 2</div></div>
+        </div>
+        <div class="sig-label">Draw your signature below</div>
+        <div class="sig-canvas-wrap" id="sig-wrap">
+          <canvas class="sig-canvas" id="sig-canvas"></canvas>
+          <div class="sig-hint" id="sig-hint">Sign here with your finger or mouse</div>
+        </div>
+        <div class="sig-actions">
+          <button class="sig-clear" onclick="clearSig()">Clear</button>
+          <button class="sig-confirm" id="sig-ok" disabled onclick="confirmSig()">${I.check} Confirm Signature</button>
+        </div>
+      </div>
+    </div>`;
+
+  // Initialize canvas
+  setTimeout(()=>initSigCanvas(),50);
+}
+
+function initSigCanvas(){
+  const canvas=document.getElementById('sig-canvas');
+  if(!canvas)return;
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.clientWidth;
+  canvas.height=140;
+  const ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1a1a2e';
+  ctx.lineWidth=2.5;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  sigState.canvas=canvas;
+  sigState.ctx=ctx;
+  sigState.hasStrokes=false;
+
+  let drawing=false;
+  function pos(e){
+    const rect=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return{x:t.clientX-rect.left,y:t.clientY-rect.top};
+  }
+  function start(e){e.preventDefault();drawing=true;const p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);}
+  function move(e){if(!drawing)return;e.preventDefault();const p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();sigState.hasStrokes=true;document.getElementById('sig-hint').style.display='none';document.getElementById('sig-ok').disabled=false;}
+  function end(){drawing=false;}
+
+  canvas.addEventListener('mousedown',start);
+  canvas.addEventListener('mousemove',move);
+  canvas.addEventListener('mouseup',end);
+  canvas.addEventListener('mouseleave',end);
+  canvas.addEventListener('touchstart',start,{passive:false});
+  canvas.addEventListener('touchmove',move,{passive:false});
+  canvas.addEventListener('touchend',end);
+}
+
+function clearSig(){
+  if(!sigState.ctx||!sigState.canvas)return;
+  sigState.ctx.clearRect(0,0,sigState.canvas.width,sigState.canvas.height);
+  sigState.hasStrokes=false;
+  document.getElementById('sig-hint').style.display='';
+  document.getElementById('sig-ok').disabled=true;
+}
+
+function confirmSig(){
+  if(!sigState.hasStrokes){alert('Please draw your signature first.');return;}
+  const dataUrl=sigState.canvas.toDataURL('image/png');
+  const wrap=document.getElementById('sig-wrap');
+  wrap.classList.add('signed');
+
+  if(sigState.step===1){
+    sigState.contSig=dataUrl;
+    sigState.step=2;
+    showSigPad(); // Move to dispatcher signature
+  }else{
+    sigState.dispSig=dataUrl;
+    finalizeTk(); // Both signed — issue ticket
+  }
+}
+
+function finalizeTk(){
+  const rid=sigState.rid;
+  const r=f(D.req,rid),c=f(D.con,r.cid),id='FT-2026-'+String(D.ft.length+1).padStart(4,'0');
+  const bc=id.replace(/-/g,'');
+  D.ft.push({id,rid,cid:r.cid,cn:r.cn,wbs:r.wbs,bc,st:'Issued and Locked',lock:true,ver:1,dt:'05 Apr 2026',contSig:sigState.contSig,dispSig:sigState.dispSig});
+  r.st='Issued and Locked';
+  const trips=gt(rid),nq=trips.reduce((s,t)=>s+(t.qd||0),0);
+  D.sap.push({id:'SAP-'+String(D.sap.length+1).padStart(3,'0'),ftid:id,code:c.code,cn:r.cn,wbs:r.wbs,qty:nq||r.qty,st:'Pending',err:''});
+  D.aud.unshift({id:'A'+Date.now(),ent:'Final Ticket',key:id,act:'Issued',o:'',n:'Issued and Locked',by:'dispatcher',on:'Just now'});
+  closeSig();
+  alert(`Final ticket ${id} issued with both signatures.`);
+  rTickets();
+}
+
+function closeSig(){
+  document.getElementById('dt-modal').innerHTML='';
+  sigState={rid:null,step:0,contSig:null,dispSig:null,drawing:false,ctx:null,canvas:null};
+}
+
+// ══════════════════════════════════════════════════════════
+// DELIVERY TICKET PRINTOUT (with barcode)
+// ══════════════════════════════════════════════════════════
+function showDT(tkId){
+  const tk=f(D.ft,tkId);if(!tk)return;
+  const r=f(D.req,tk.rid),c=f(D.con,tk.cid),m=f(D.mix,r?.mid),l=f(D.loc,r?.lid),w=f(D.wf,r?.wfid);
+  const trips=gt(tk.rid),adjs=ga(tk.rid);
+  const td=trips.reduce((s,t)=>s+(t.qd||0),0);
+  const ti=adjs.filter(a=>a.type==='Increase').reduce((s,a)=>s+a.qty,0);
+  const tr2=adjs.filter(a=>a.type==='Reduction').reduce((s,a)=>s+a.qty,0);
+  const nq=td;
+
+  document.getElementById('dt-modal').innerHTML=`
+    <div class="dt-overlay" onclick="if(event.target===this)closeDT()">
+      <div class="dt-sheet">
+        <div class="dt-head">
+          <button class="dt-close" onclick="closeDT()">&times;</button>
+          <div class="dt-head-logo">${I.cube} <span class="dt-head-co">Concrete Dispatch</span></div>
+          <div class="dt-head-title">Final Delivery Ticket</div>
+          <div class="dt-head-sub">Issued ${tk.dt} · Version ${tk.ver}</div>
+          <div class="dt-head-num"><div class="dt-head-num-l">Ticket No.</div><div class="dt-head-num-v">${tk.id}</div></div>
+        </div>
+        <div class="dt-body">
+          <div class="dt-sec">
+            <div class="dt-sec-t">Contractor Details</div>
+            <div class="dt-row"><span class="dt-row-l">Contractor</span><span class="dt-row-v">${c?.name}</span></div>
+            <div class="dt-row"><span class="dt-row-l">Contractor Code</span><span class="dt-row-v">${c?.code}</span></div>
+            <div class="dt-row"><span class="dt-row-l">Contract No.</span><span class="dt-row-v">${tk.cn}</span></div>
+            <div class="dt-row"><span class="dt-row-l">WBS Code</span><span class="dt-row-v">${tk.wbs}</span></div>
+          </div>
+          <div class="dt-sec">
+            <div class="dt-sec-t">Request Information</div>
+            <div class="dt-row"><span class="dt-row-l">Request No.</span><span class="dt-row-v">${r?.id}</span></div>
+            <div class="dt-row"><span class="dt-row-l">Project / Tower</span><span class="dt-row-v">${r?.proj} / ${r?.tw}</span></div>
+            <div class="dt-row"><span class="dt-row-l">Work Front</span><span class="dt-row-v">${w?.code||'—'}</span></div>
+            <div class="dt-row"><span class="dt-row-l">Location</span><span class="dt-row-v">${l?.name||'—'}</span></div>
+            <div class="dt-row"><span class="dt-row-l">Mix Design</span><span class="dt-row-v">${m?.code} — ${m?.desc}</span></div>
+          </div>
+          <div class="dt-sec">
+            <div class="dt-sec-t">Mixer Trip Lines</div>
+            <table class="dt-tbl">
+              <thead><tr><th>#</th><th>Mixer</th><th>Carried</th><th>Delivered</th><th>Signed</th></tr></thead>
+              <tbody>
+                ${trips.map(t=>`<tr><td>${t.seq}</td><td>${t.mx}</td><td>${t.qc} m³</td><td>${t.qd} m³</td><td>${t.sig?'<span style="color:var(--green);font-weight:700">Yes</span>':'<span style="color:var(--orange)">No</span>'}</td></tr>`).join('')}
+                ${adjs.length?adjs.map(a=>`<tr><td colspan="2" style="color:${a.type==='Increase'?'var(--green)':'var(--red)'};font-weight:600">${a.type}</td><td colspan="2">${a.type==='Increase'?'+':'-'}${a.qty} m³</td><td style="font-size:12px;color:var(--label3)">${a.reason}</td></tr>`).join(''):''}
+                <tr class="tot"><td colspan="3">Net Quantity</td><td colspan="2" style="font-size:18px">${nq} m³</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="dt-sec">
+            <div class="dt-sec-t">Quantity Summary</div>
+            <div class="dt-row"><span class="dt-row-l">Original Requested</span><span class="dt-row-v">${r?.qty} m³</span></div>
+            ${ti?`<div class="dt-row"><span class="dt-row-l">Increases</span><span class="dt-row-v" style="color:var(--green)">+${ti} m³</span></div>`:''}
+            ${tr2?`<div class="dt-row"><span class="dt-row-l">Reductions</span><span class="dt-row-v" style="color:var(--red)">-${tr2} m³</span></div>`:''}
+            <div class="dt-row" style="font-weight:700;padding-top:8px;border-top:1px solid var(--sep);margin-top:4px"><span class="dt-row-l" style="color:var(--label);font-weight:700">Total Delivered</span><span class="dt-row-v" style="color:var(--label);font-size:18px">${nq} m³</span></div>
+          </div>
+          <div class="dt-sec">
+            <div class="dt-sec-t">Signatures</div>
+            <div style="display:flex;gap:12px">
+              <div style="flex:1;text-align:center">
+                <div style="font-size:10px;font-weight:600;color:var(--label4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Contractor</div>
+                <div style="background:var(--bg);border-radius:10px;padding:8px;height:70px;display:flex;align-items:center;justify-content:center">
+                  ${tk.contSig?`<img src="${tk.contSig}" style="max-height:54px;max-width:100%;object-fit:contain"/>`:'<span style="font-size:12px;color:var(--label4)">Not captured</span>'}
+                </div>
+                <div style="border-top:1px solid var(--label);margin-top:8px;padding-top:4px;font-size:11px;color:var(--label3)">${c?.name}</div>
+              </div>
+              <div style="flex:1;text-align:center">
+                <div style="font-size:10px;font-weight:600;color:var(--label4);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">Dispatcher</div>
+                <div style="background:var(--bg);border-radius:10px;padding:8px;height:70px;display:flex;align-items:center;justify-content:center">
+                  ${tk.dispSig?`<img src="${tk.dispSig}" style="max-height:54px;max-width:100%;object-fit:contain"/>`:'<span style="font-size:12px;color:var(--label4)">Not captured</span>'}
+                </div>
+                <div style="border-top:1px solid var(--label);margin-top:8px;padding-top:4px;font-size:11px;color:var(--label3)">Dispatch Officer</div>
+              </div>
+            </div>
+          </div>
+          <div class="dt-sec" style="text-align:center">
+            <div class="dt-stamp">${I.lock} Issued and Locked</div>
+          </div>
+          ${genBarcode(tk.bc)}
+        </div>
+        <div class="dt-foot">
+          This is a system-generated delivery ticket. Original quantity, trip lines, adjustments, and signatures are retained for audit.<br/>
+          Sequence: ${tk.id} · Barcode: ${tk.bc} · Status: ${tk.st}
+        </div>
+      </div>
+    </div>`;
+}
+
+function closeDT(){document.getElementById('dt-modal').innerHTML='';}
+
+// ══════════════════════════════════════════════════════════
+// RECEIVER
+// ══════════════════════════════════════════════════════════
+function rRecv(){
+  const ind=D.req.filter(r=>['In Delivery','Partially Delivered'].includes(r.st)).length;
+  const uns=D.trip.filter(t=>!t.sig&&t.st!=='Planned');
+  rP(`<div class="hdr"><div class="hdr-lg">Receiving</div></div>
+    <div class="scroll">
+      <div class="kpi-r mb"><div class="kpi"><div class="kpi-v" style="color:var(--orange)">${ind}</div><div class="kpi-l">Active Deliveries</div></div><div class="kpi"><div class="kpi-v" style="color:var(--red)">${uns.length}</div><div class="kpi-l">Pending Signatures</div></div></div>
+      <div class="sec-t">TRIPS AWAITING YOUR SIGNATURE</div>
+      ${uns.length===0?`<div class="empty">${I.check}<div class="empty-t">All Clear</div><div class="empty-m">No pending trips to sign.</div></div>`:uns.map(t=>{
+        const r=f(D.req,t.rid),c=f(D.con,r?.cid),m=f(D.mix,r?.mid);
+        return`<div class="rcard" style="cursor:default"><div style="display:flex;align-items:center;margin-bottom:10px"><div class="row-ico" style="background:var(--orange15);color:var(--orange)">${I.clock}</div><div style="flex:1"><div style="font-weight:700">Trip ${t.seq} — Mixer ${t.mx}</div><div style="font-size:13px;color:var(--label3)">${t.rid} · ${c?.name}</div><div style="font-size:11px;color:var(--label4)">${m?.code} · ${r?.proj} / ${r?.tw}</div></div><div style="background:var(--blue15);padding:8px 12px;border-radius:10px;font-weight:800;color:var(--blue);font-size:16px">${t.qd} m³</div></div><button class="sign" onclick="signT('${t.id}')">${I.pen} Sign & Confirm Receipt</button></div>`;
+      }).join('')}
+    </div>`);
+}
+
+function signT(tid){if(!confirm('Confirm receipt and sign this trip?'))return;const t=f(D.trip,tid);if(t){t.sig=true;t.st='Delivered';}D.aud.unshift({id:'A'+Date.now(),ent:'Trip',key:tid,act:'Signed',o:'Unsigned',n:'Signed',by:'receiver',on:'Just now'});alert('Trip signed.');rRecv();}
+
+// ══════════════════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════════════════
+function rAdmin(){
+  rP(`<div class="hdr"><div class="hdr-lg">Admin</div></div>
+    <div class="scroll">
+      <div class="sec"><div class="sec-t">Master Data Overview</div><div class="card">
+        <div class="row"><div class="row-ico" style="background:var(--blue15);color:var(--blue)">${I.people}</div><div class="row-body"><div class="row-lbl">Contractors</div></div><div class="row-val">${D.con.filter(c=>c.st==='Active').length} active</div><div class="row-arr">${I.chev}</div></div>
+        <div class="row"><div class="row-ico" style="background:var(--orange15);color:var(--orange)">${I.map}</div><div class="row-body"><div class="row-lbl">Work Fronts</div></div><div class="row-val">${D.wf.filter(w=>w.st==='Open').length} open</div><div class="row-arr">${I.chev}</div></div>
+        <div class="row"><div class="row-ico" style="background:var(--green15);color:var(--green)">${I.pin}</div><div class="row-body"><div class="row-lbl">Locations</div></div><div class="row-val">${D.loc.length} entries</div><div class="row-arr">${I.chev}</div></div>
+        <div class="row"><div class="row-ico" style="background:var(--purple15);color:var(--purple)">${I.flask}</div><div class="row-body"><div class="row-lbl">Concrete Mixes</div></div><div class="row-val">${D.mix.length} types</div><div class="row-arr">${I.chev}</div></div>
+      </div></div>
+      <div class="sec"><div class="sec-t">Administration</div><div class="card">
+        <div class="row"><div class="row-ico" style="background:var(--purple15);color:var(--purple)">${I.shield}</div><div class="row-body"><div class="row-lbl">Permissions & Roles</div><div class="row-sub">Manage security groups and access</div></div><div class="row-arr">${I.chev}</div></div>
+        <div class="row"><div class="row-ico" style="background:var(--blue15);color:var(--blue)">${I.barcode}</div><div class="row-body"><div class="row-lbl">Numbering Rules</div><div class="row-sub">Ticket sequence and barcode format</div></div><div class="row-arr">${I.chev}</div></div>
+        <div class="row"><div class="row-ico" style="background:var(--red15);color:var(--red)">${I.alert}</div><div class="row-body"><div class="row-lbl">Exception Queue</div><div class="row-sub">Tickets missing signed copies</div></div><div class="row-arr">${I.chev}</div></div>
+      </div></div>
+      <div class="sec"><div class="sec-t">Contractors</div><div class="card">${D.con.map(c=>`<div class="row" style="cursor:default"><div class="row-ico" style="background:${c.st==='Active'?'var(--green15)':'var(--fill)'};color:${c.st==='Active'?'var(--green)':'var(--label3)'}">${I.people}</div><div class="row-body"><div class="row-lbl">${c.name}</div><div class="row-sub">${c.code} — ${c.cn} — WBS: ${c.wbs}</div></div><div class="row-val">${c.st}</div></div>`).join('')}</div></div>
+      <div class="sec"><div class="sec-t">Work Front Assignments</div><div class="card">${D.wf.map(w=>{const c=f(D.con,w.cid);return`<div class="row" style="cursor:default"><div class="row-ico" style="background:${w.st==='Open'?'var(--green15)':'var(--red15)'};color:${w.st==='Open'?'var(--green)':'var(--red)'}">${I.map}</div><div class="row-body"><div class="row-lbl">${w.proj} / ${w.tw}</div><div class="row-sub">${c?.name} — ${w.code}</div></div><div class="row-val">${w.st}</div></div>`}).join('')}</div></div>
+    </div>`);
+}
+
+// ══════════════════════════════════════════════════════════
+// AUDIT LOG
+// ══════════════════════════════════════════════════════════
+function rAudit(){
+  const ac={Create:'var(--green)','Status Change':'var(--blue)',Issued:'var(--purple)',Signed:'var(--green)'};
+  rP(`<div class="hdr"><div class="hdr-lg">Audit Log</div></div>
+    <div class="chips" id="af">${['All','Request','Trip','Final Ticket','Adjustment'].map((x,i)=>`<button class="chip${i===0?' on':''}" onclick="fAud('${x}',this)">${x}</button>`).join('')}</div>
+    <div class="scroll" id="al">${auEntries(D.aud)}</div>`);
+}
+
+function fAud(x,el){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');const fil=x==='All'?D.aud:D.aud.filter(a=>a.ent===x);document.getElementById('al').innerHTML=auEntries(fil);}
+
+function auEntries(ents){
+  const ac={Create:'var(--green)','Status Change':'var(--blue)',Issued:'var(--purple)',Signed:'var(--green)'};
+  const ai={Create:I.plus,'Status Change':I.swap,Issued:I.ticket,Signed:I.pen};
+  return ents.map(a=>{const col=ac[a.act]||'var(--label3)';return`<div class="rcard" style="cursor:default;margin-bottom:8px"><div style="display:flex;align-items:flex-start"><div class="row-ico" style="background:${col}15;color:${col};margin-top:2px">${ai[a.act]||I.clock}</div><div style="flex:1"><div style="font-size:16px;font-weight:700">${a.act} <span style="font-weight:400;color:var(--label3)">— ${a.ent}</span></div><div style="font-size:13px;color:var(--blue);margin-top:3px;font-weight:600">${a.key}</div>${a.o||a.n?`<div style="font-size:13px;color:var(--label2);margin-top:2px">${a.o?a.o+' → ':''}${a.n}</div>`:''}<div style="font-size:11px;color:var(--label4);margin-top:4px">${a.by} · ${a.on}</div></div></div></div>`}).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+// SAP QUEUE
+// ══════════════════════════════════════════════════════════
+function rSAP(){
+  const p=D.sap.filter(s=>s.st==='Pending').length,po=D.sap.filter(s=>s.st==='Posted').length,fl=D.sap.filter(s=>s.st==='Failed').length;
+  const sc={Pending:{bg:'var(--orange15)',c:'var(--orange)',i:I.clock},Posted:{bg:'var(--green15)',c:'var(--green)',i:I.check},Failed:{bg:'var(--red15)',c:'var(--red)',i:I.alert}};
+  rP(`<div class="hdr"><div class="hdr-lg">SAP Queue</div></div>
+    <div class="scroll">
+      <div class="kpi-r mb"><div class="kpi"><div class="kpi-v" style="color:var(--orange)">${p}</div><div class="kpi-l">Pending</div></div><div class="kpi"><div class="kpi-v" style="color:var(--green)">${po}</div><div class="kpi-l">Posted</div></div><div class="kpi"><div class="kpi-v" style="color:var(--red)">${fl}</div><div class="kpi-l">Failed</div></div></div>
+      ${D.sap.map(s=>{const x=sc[s.st]||sc.Pending;return`<div class="rcard" ${s.st==='Pending'?`onclick="postSAP('${s.id}')" style="cursor:pointer"`:'style="cursor:default"'}><div style="display:flex;align-items:center"><div class="row-ico" style="background:${x.bg};color:${x.c}">${x.i}</div><div style="flex:1"><div style="font-weight:700">${s.ftid}</div><div style="font-size:13px;color:var(--label3)">${s.code} · ${s.cn} · WBS: ${s.wbs}</div><div style="font-size:14px;font-weight:700;color:var(--label2);margin-top:3px">Net Qty: ${s.qty} m³</div></div><span class="pill ${pc(s.st)}">${s.st}</span></div>${s.err?`<div style="display:flex;align-items:center;gap:6px;margin-top:10px;padding-top:10px;border-top:.5px solid var(--sep);font-size:13px;color:var(--red)">${I.alert} ${s.err}</div>`:''}${s.st==='Pending'?'<div style="font-size:12px;color:var(--blue);margin-top:10px;text-align:center;font-weight:500">Tap to post to SAP</div>':''}</div>`}).join('')}
+    </div>`);
+}
+
+function postSAP(sid){if(!confirm('Post this record to SAP?'))return;const s=f(D.sap,sid);if(s)s.st='Posted';D.aud.unshift({id:'A'+Date.now(),ent:'SAP Queue',key:sid,act:'Posted',o:'Pending',n:'Posted',by:'finance',on:'Just now'});alert('Posted to SAP successfully.');rSAP();}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+initFace();
+initRoles();
+
+// ══════════════════════════════════════════════════════════
+// PWA SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════════
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg=>console.log('SW registered:',reg.scope))
+      .catch(err=>console.log('SW registration failed:',err));
+  });
+}
+
+// PWA Install Prompt
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredPrompt=e;
+  // Show install hint on role screen
+  const v=document.querySelector('.ver');
+  if(v)v.innerHTML+='<br/><button style="margin-top:8px;background:var(--blue);color:#fff;border:none;padding:8px 20px;border-radius:10px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer" onclick="installPWA()">Install App</button>';
+});
+
+function installPWA(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(c=>{
+    if(c.outcome==='accepted')console.log('PWA installed');
+    deferredPrompt=null;
+  });
+}
+</script>
+</body>
+</html>
