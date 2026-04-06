@@ -1092,7 +1092,7 @@ function showDT(tkId){
 
 function closeDT(){document.getElementById('dt-modal').innerHTML='';}
 
-// ── PDF Export (Vector, sleek black/white/blue) ──
+// ── PDF Export (Vector, sleek black/white/blue, single page) ──
 async function exportDTPdf(tkId){
   const sheet=document.querySelector('.dt-sheet');
   if(!sheet)return;
@@ -1113,75 +1113,65 @@ async function exportDTPdf(tkId){
 
     const {jsPDF}=window.jspdf;
     const pdf=new jsPDF('p','mm','a4');
-    const pw=210,ph=297,mg=20;
+    const pw=210,ph=297,mg=18;
     const cw=pw-mg*2;
     let y=0;
 
-    // ── Palette: black / white / blue ──
-    const BLUE=[0,102,204],BLUEL=[232,240,254],WHITE=[255,255,255];
-    const BLACK=[17,17,17],DARK=[34,34,34],BODY=[51,51,51];
-    const MED=[102,102,102],LIGHT=[153,153,153],MUTED=[187,187,187];
-    const RULE=[221,221,221],BG=[245,246,248],GREENT=[26,138,63],REDT=[204,0,0];
+    // ── Palette ──
+    const BLUE=[0,102,204],BLUEL=[232,240,254],W=[255,255,255];
+    const BK=[17,17,17],DK=[34,34,34],BD=[51,51,51];
+    const MD=[102,102,102],LT=[153,153,153],MT=[187,187,187];
+    const RL=[221,221,221],BG=[245,246,248],GR=[26,138,63],RD=[204,0,0];
 
-    // ── Helper: rounded rect ──
-    function rr(x,ry,rw,rh,rad,fc,sc,sw){
-      if(sw)pdf.setLineWidth(sw);
-      if(sc)pdf.setDrawColor(...sc);
-      if(fc){pdf.setFillColor(...fc);pdf.roundedRect(x,ry,rw,rh,rad,rad,sc?'FD':'F');}
-      else pdf.roundedRect(x,ry,rw,rh,rad,rad,'S');
-    }
+    function rr(x,ry,rw,rh,rad,fc,sc,sw){if(sw)pdf.setLineWidth(sw);if(sc)pdf.setDrawColor(...sc);if(fc){pdf.setFillColor(...fc);pdf.roundedRect(x,ry,rw,rh,rad,rad,sc?'FD':'F');}else pdf.roundedRect(x,ry,rw,rh,rad,rad,'S');}
 
-    // ── Helper: section ──
     function sec(label){
-      y+=2;
-      pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);
+      y+=1;
+      pdf.setFont('helvetica','bold');pdf.setFontSize(8);
       pdf.setTextColor(...BLUE);
       pdf.text(label.toUpperCase(),mg,y);
-      y+=2;
-      pdf.setDrawColor(...RULE);pdf.setLineWidth(0.5);
+      y+=1.5;
+      pdf.setDrawColor(...RL);pdf.setLineWidth(0.4);
       pdf.line(mg,y,mg+cw,y);
-      y+=5.5;
+      y+=4.5;
     }
 
-    // ── Helper: row ──
     function row(label,value,opts={}){
-      pdf.setFont('helvetica','normal');pdf.setFontSize(9);
-      pdf.setTextColor(...MED);
+      pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);
+      pdf.setTextColor(...MD);
       pdf.text(label,mg+1,y);
       pdf.setFont('helvetica',opts.bold?'bold':'normal');
-      pdf.setFontSize(opts.vs||9);
-      pdf.setTextColor(...(opts.color||BODY));
+      pdf.setFontSize(opts.vs||8.5);
+      pdf.setTextColor(...(opts.color||BD));
       pdf.text(String(value||'\u2014'),mg+cw-1,y,{align:'right'});
-      y+=5.5;
+      y+=4.8;
     }
 
     // ═══ TOP BLUE BAR ═══
-    const barH=4;
+    const barH=3.5;
     pdf.setFillColor(...BLUE);
     pdf.rect(0,0,pw,barH,'F');
 
     // ═══ HEADER ═══
-    y=barH+14;
-    pdf.setFont('helvetica','bold');pdf.setFontSize(22);
-    pdf.setTextColor(...BLACK);
+    y=barH+10;
+    pdf.setFont('helvetica','bold');pdf.setFontSize(20);
+    pdf.setTextColor(...BK);
     pdf.text('DELIVERY TICKET',pw/2,y,{align:'center'});
 
-    y+=7;
-    pdf.setFont('helvetica','normal');pdf.setFontSize(9);
-    pdf.setTextColor(...MED);
+    y+=6;
+    pdf.setFont('helvetica','normal');pdf.setFontSize(8);
+    pdf.setTextColor(...MD);
     pdf.text(`Concrete Dispatch System  \u00B7  ${tk.dt}  \u00B7  Version ${tk.ver}`,pw/2,y,{align:'center'});
 
-    // ── Ticket ID pill (solid blue) ──
-    y+=6;
-    const pillW=56,pillH=9,pillR=pillH/2;
-    const pillX=(pw-pillW)/2;
+    // Ticket ID pill
+    y+=5;
+    const pillW=50,pillH=8,pillR=pillH/2;
     pdf.setFillColor(...BLUE);
-    pdf.roundedRect(pillX,y,pillW,pillH,pillR,pillR,'F');
-    pdf.setFont('helvetica','bold');pdf.setFontSize(11);
-    pdf.setTextColor(...WHITE);
-    pdf.text(tk.id,pw/2,y+6.3,{align:'center'});
-
-    y+=pillH+8;
+    pdf.roundedRect((pw-pillW)/2,y,pillW,pillH,pillR,pillR,'F');
+    pdf.setFont('helvetica','bold');pdf.setFontSize(10);
+    pdf.setTextColor(...W);
+    pdf.text(tk.id,pw/2,y+5.6,{align:'center'});
+    y+=pillH+6;
 
     // ═══ CONTRACTOR DETAILS ═══
     sec('Contractor Details');
@@ -1201,20 +1191,18 @@ async function exportDTPdf(tkId){
     // ═══ MIXER TRIP LINES ═══
     sec('Mixer Trip Lines');
 
-    // Table header
-    const cx=[mg+1,mg+14,mg+44,mg+78,mg+112];
+    const cx=[mg+1,mg+14,mg+42,mg+74,mg+108];
     pdf.setFillColor(...BG);
-    pdf.rect(mg,y-1,cw,5.5,'F');
-    pdf.setFont('helvetica','bold');pdf.setFontSize(7);
-    pdf.setTextColor(...LIGHT);
-    ['#','MIXER','CARRIED','DELIVERED','SIGNED'].forEach((h,i)=>pdf.text(h,cx[i],y+1));
-    y+=6.5;
+    pdf.rect(mg,y-1,cw,5,'F');
+    pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);
+    pdf.setTextColor(...LT);
+    ['#','MIXER','CARRIED','DELIVERED','SIGNED'].forEach((h,i)=>pdf.text(h,cx[i],y+0.5));
+    y+=5.5;
 
-    // Table rows
     trips.forEach((t,i)=>{
-      if(i%2===0){pdf.setFillColor(250,251,252);pdf.rect(mg,y-1.5,cw,6,'F');}
-      pdf.setFont('helvetica','normal');pdf.setFontSize(9);
-      pdf.setTextColor(...BODY);
+      if(i%2===0){pdf.setFillColor(250,251,252);pdf.rect(mg,y-1.5,cw,5.2,'F');}
+      pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);
+      pdf.setTextColor(...BD);
       pdf.text(String(t.seq),cx[0],y);
       pdf.setFont('helvetica','bold');
       pdf.text(t.mx,cx[1],y);
@@ -1222,144 +1210,130 @@ async function exportDTPdf(tkId){
       pdf.text(`${t.qc} m\u00B3`,cx[2],y);
       pdf.text(`${t.qd} m\u00B3`,cx[3],y);
       pdf.setFont('helvetica','bold');
-      if(t.sig){pdf.setTextColor(...GREENT);pdf.text('Yes',cx[4],y);}
-      else{pdf.setTextColor(...REDT);pdf.text('No',cx[4],y);}
-      y+=6;
+      if(t.sig){pdf.setTextColor(...GR);pdf.text('Yes',cx[4],y);}
+      else{pdf.setTextColor(...RD);pdf.text('No',cx[4],y);}
+      y+=5.2;
     });
 
-    // Adjustments
     adjs.forEach(a=>{
       const inc=a.type==='Increase';
-      pdf.setFont('helvetica','bold');pdf.setFontSize(8);
-      pdf.setTextColor(...(inc?GREENT:REDT));
+      pdf.setFont('helvetica','bold');pdf.setFontSize(7.5);
+      pdf.setTextColor(...(inc?GR:RD));
       pdf.text(a.type,cx[0],y);
       pdf.text(`${inc?'+':'-'}${a.qty} m\u00B3`,cx[2],y);
-      pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-      pdf.setTextColor(...MED);
+      pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
+      pdf.setTextColor(...MD);
       pdf.text(a.reason||'',cx[4],y);
-      y+=6;
+      y+=5.2;
     });
 
-    // ── Net Quantity (solid blue bar) ──
-    y+=1;
-    const nqH=8;
+    // Net Quantity blue bar
+    y+=0.5;
+    const nqH=7;
     pdf.setFillColor(...BLUE);
-    pdf.roundedRect(mg,y-2,cw,nqH,2,2,'F');
-    pdf.setFont('helvetica','bold');pdf.setFontSize(9);
-    pdf.setTextColor(...WHITE);
-    pdf.text('NET QUANTITY',mg+4,y+1.5);
-    pdf.setFontSize(14);
-    pdf.text(`${nq} m\u00B3`,mg+cw-4,y+1,{align:'right'});
-    y+=nqH+4;
+    pdf.roundedRect(mg,y-1.5,cw,nqH,1.5,1.5,'F');
+    pdf.setFont('helvetica','bold');pdf.setFontSize(8);
+    pdf.setTextColor(...W);
+    pdf.text('NET QUANTITY',mg+3,y+1.5);
+    pdf.setFontSize(12);
+    pdf.text(`${nq} m\u00B3`,mg+cw-3,y+1,{align:'right'});
+    y+=nqH+3;
 
     // ═══ QUANTITY SUMMARY ═══
     sec('Quantity Summary');
     row('Original Requested',`${r?.qty} m\u00B3`);
-    if(ti)row('Increases',`+${ti} m\u00B3`,{color:GREENT});
-    if(tr2)row('Reductions',`-${tr2} m\u00B3`,{color:REDT});
-    // Thin rule
-    pdf.setDrawColor(...RULE);pdf.setLineWidth(0.25);
-    pdf.line(mg+1,y-2.5,mg+cw-1,y-2.5);
-    y+=0.5;
-    // Total delivered (big)
-    pdf.setFont('helvetica','normal');pdf.setFontSize(9);
-    pdf.setTextColor(...MED);
+    if(ti)row('Increases',`+${ti} m\u00B3`,{color:GR});
+    if(tr2)row('Reductions',`-${tr2} m\u00B3`,{color:RD});
+    pdf.setDrawColor(...RL);pdf.setLineWidth(0.2);
+    pdf.line(mg+1,y-2,mg+cw-1,y-2);
+    pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);
+    pdf.setTextColor(...MD);
     pdf.text('Total Delivered',mg+1,y);
-    pdf.setFont('helvetica','bold');pdf.setFontSize(14);
-    pdf.setTextColor(...BLACK);
-    pdf.text(`${nq} m\u00B3`,mg+cw-1,y-1,{align:'right'});
-    y+=8;
-
-    // ── Page break check ──
-    if(y>ph-105){pdf.addPage();y=mg;}
+    pdf.setFont('helvetica','bold');pdf.setFontSize(13);
+    pdf.setTextColor(...BK);
+    pdf.text(`${nq} m\u00B3`,mg+cw-1,y-0.5,{align:'right'});
+    y+=7;
 
     // ═══ SIGNATURES ═══
     sec('Signatures');
-    const sw2=(cw-12)/2,sh2=24;
-    const sx1=mg,sx2=mg+sw2+12;
+    const sw2=(cw-10)/2,sh2=20;
+    const sx1=mg,sx2=mg+sw2+10;
 
-    // Labels
-    pdf.setFont('helvetica','bold');pdf.setFontSize(7);
-    pdf.setTextColor(...LIGHT);
-    pdf.text('CONTRACTOR',sx1+sw2/2,y+1,{align:'center'});
-    pdf.text('DISPATCHER',sx2+sw2/2,y+1,{align:'center'});
-    y+=4;
+    pdf.setFont('helvetica','bold');pdf.setFontSize(6.5);
+    pdf.setTextColor(...LT);
+    pdf.text('CONTRACTOR',sx1+sw2/2,y,{align:'center'});
+    pdf.text('DISPATCHER',sx2+sw2/2,y,{align:'center'});
+    y+=3;
 
-    // Boxes
-    rr(sx1,y,sw2,sh2,2.5,BG,RULE,0.5);
-    rr(sx2,y,sw2,sh2,2.5,BG,RULE,0.5);
+    rr(sx1,y,sw2,sh2,2,BG,RL,0.4);
+    rr(sx2,y,sw2,sh2,2,BG,RL,0.4);
 
-    // Sig images or placeholder
-    if(tk.contSig){try{pdf.addImage(tk.contSig,'PNG',sx1+3,y+2,sw2-6,sh2-4);}catch(e){}}
-    else{pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);pdf.setTextColor(...MUTED);pdf.text('Not captured',sx1+sw2/2,y+sh2/2+1.5,{align:'center'});}
-    if(tk.dispSig){try{pdf.addImage(tk.dispSig,'PNG',sx2+3,y+2,sw2-6,sh2-4);}catch(e){}}
-    else{pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);pdf.setTextColor(...MUTED);pdf.text('Not captured',sx2+sw2/2,y+sh2/2+1.5,{align:'center'});}
+    if(tk.contSig){try{pdf.addImage(tk.contSig,'PNG',sx1+2,y+1.5,sw2-4,sh2-3);}catch(e){}}
+    else{pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(...MT);pdf.text('Not captured',sx1+sw2/2,y+sh2/2+1,{align:'center'});}
+    if(tk.dispSig){try{pdf.addImage(tk.dispSig,'PNG',sx2+2,y+1.5,sw2-4,sh2-3);}catch(e){}}
+    else{pdf.setFont('helvetica','normal');pdf.setFontSize(8);pdf.setTextColor(...MT);pdf.text('Not captured',sx2+sw2/2,y+sh2/2+1,{align:'center'});}
 
-    y+=sh2+3;
-
-    // Sig lines + names
-    pdf.setDrawColor(...BLACK);pdf.setLineWidth(0.4);
-    pdf.line(sx1+8,y,sx1+sw2-8,y);
-    pdf.line(sx2+8,y,sx2+sw2-8,y);
-    y+=4;
-    pdf.setFont('helvetica','normal');pdf.setFontSize(8);
-    pdf.setTextColor(...BODY);
+    y+=sh2+2;
+    pdf.setDrawColor(...BK);pdf.setLineWidth(0.4);
+    pdf.line(sx1+6,y,sx1+sw2-6,y);
+    pdf.line(sx2+6,y,sx2+sw2-6,y);
+    y+=3.5;
+    pdf.setFont('helvetica','normal');pdf.setFontSize(7.5);
+    pdf.setTextColor(...BD);
     pdf.text(co?.name||'Contractor',sx1+sw2/2,y,{align:'center'});
     pdf.text('Dispatch Officer',sx2+sw2/2,y,{align:'center'});
-    y+=10;
+    y+=7;
 
-    // ═══ STATUS BADGE (blue outline pill) ═══
-    const stW=40,stH=7.5,stR=stH/2;
-    const stX=(pw-stW)/2;
-    rr(stX,y,stW,stH,stR,BLUEL,BLUE,0.6);
-    pdf.setFont('helvetica','bold');pdf.setFontSize(8);
+    // ═══ STATUS BADGE ═══
+    const stW=36,stH=6.5,stR=stH/2;
+    rr((pw-stW)/2,y,stW,stH,stR,BLUEL,BLUE,0.5);
+    pdf.setFont('helvetica','bold');pdf.setFontSize(7);
     pdf.setTextColor(...BLUE);
-    pdf.text('ISSUED & LOCKED',pw/2,y+5.2,{align:'center'});
-    y+=stH+6;
+    pdf.text('ISSUED & LOCKED',pw/2,y+4.5,{align:'center'});
+    y+=stH+4;
 
-    // ── Separator ──
-    pdf.setDrawColor(...RULE);pdf.setLineWidth(0.3);
+    // Separator
+    pdf.setDrawColor(...RL);pdf.setLineWidth(0.2);
     pdf.line(mg+20,y,mg+cw-20,y);
-    y+=6;
+    y+=4;
 
-    // ═══ BARCODE (JsBarcode Code128) ═══
+    // ═══ BARCODE ═══
     const bcStr=tk.bc||'';
     try{
       const bcCanvas=document.createElement('canvas');
-      JsBarcode(bcCanvas,bcStr,{format:'CODE128',width:2,height:70,displayValue:false,margin:0,background:'#ffffff'});
+      JsBarcode(bcCanvas,bcStr,{format:'CODE128',width:2,height:60,displayValue:false,margin:0,background:'#ffffff'});
       const bcImg=bcCanvas.toDataURL('image/png',1.0);
-      const bcPdfW=60,bcPdfH=18;
+      const bcPdfW=55,bcPdfH=15;
       pdf.addImage(bcImg,'PNG',(pw-bcPdfW)/2,y,bcPdfW,bcPdfH);
-      y+=bcPdfH+3;
+      y+=bcPdfH+2.5;
     }catch(e){
       pdf.setFillColor(0,0,0);
-      let bx=(pw-60)/2;
-      for(let i=0;i<bcStr.length;i++){const cd=bcStr.charCodeAt(i);for(let b=7;b>=0;b--){if((cd>>b)&1)pdf.rect(bx,y,0.6,18,'F');bx+=0.6;}bx+=0.3;}
-      y+=21;
+      let bx=(pw-55)/2;
+      for(let i=0;i<bcStr.length;i++){const cd=bcStr.charCodeAt(i);for(let b=7;b>=0;b--){if((cd>>b)&1)pdf.rect(bx,y,0.5,15,'F');bx+=0.5;}bx+=0.2;}
+      y+=18;
     }
 
-    // Barcode text
-    pdf.setFont('courier','bold');pdf.setFontSize(10);
-    pdf.setTextColor(...DARK);
+    pdf.setFont('courier','bold');pdf.setFontSize(9);
+    pdf.setTextColor(...DK);
     pdf.text(bcStr.split('').join('   '),pw/2,y,{align:'center'});
-    y+=10;
+    y+=7;
 
     // ═══ FOOTER ═══
-    pdf.setDrawColor(...RULE);pdf.setLineWidth(0.3);
+    pdf.setDrawColor(...RL);pdf.setLineWidth(0.2);
     pdf.line(mg,y,mg+cw,y);
-    y+=4.5;
-    pdf.setFont('helvetica','normal');pdf.setFontSize(7);
-    pdf.setTextColor(...LIGHT);
-    ['System-generated delivery ticket. Original quantity, trip lines, adjustments, and signatures retained for audit.',
-     `${tk.id}  \u00B7  ${tk.bc}  \u00B7  ${tk.st}`
-    ].forEach(ln=>{pdf.text(ln,pw/2,y,{align:'center'});y+=3.5;});
+    y+=3.5;
+    pdf.setFont('helvetica','normal');pdf.setFontSize(6.5);
+    pdf.setTextColor(...LT);
+    pdf.text('System-generated delivery ticket. Original quantity, trip lines, adjustments, and signatures retained for audit.',pw/2,y,{align:'center'});
+    y+=3;
+    pdf.text(`${tk.id}  \u00B7  ${tk.bc}  \u00B7  ${tk.st}`,pw/2,y,{align:'center'});
 
     // ═══ BOTTOM BLUE BAR ═══
     pdf.setFillColor(...BLUE);
     pdf.rect(0,0,pw,barH,'F');
-    pdf.setFont('helvetica','normal');pdf.setFontSize(5.5);
-    pdf.setTextColor(...WHITE);
-    pdf.text('AWI  \u00B7  Concrete Dispatch System',pw/2,1.8,{align:'center'});
+    pdf.setFont('helvetica','normal');pdf.setFontSize(5);
+    pdf.setTextColor(...W);
+    pdf.text('AWI  \u00B7  Concrete Dispatch System',pw/2,1.5,{align:'center'});
 
     pdf.save(`Delivery_Ticket_${tkId}.pdf`);
   }catch(e){
